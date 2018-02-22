@@ -17,6 +17,7 @@ pygame.time.set_timer(pygame.USEREVENT+1, 25)
 game_running = False
 t = 0
 
+title_font = pygame.font.Font("aldo_the_apache/AldotheApache.ttf", 150)
 display_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 50)
 prompt_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 75)
 
@@ -81,7 +82,18 @@ while True:
             (400 - (w/2), 350 - (h/2))
         )
     elif not game_running:
-        # Starting key prompt.
+        # Starting key prompt and title
+        title_display = title_font.render(
+            "CurtainFire", True, (0, 255, 0)
+        )
+
+        w, h = title_display.get_size()
+
+        screen.blit(
+            title_display,
+            (400 - (w/2), 200 - (h/2))
+        )
+
         if pygame.time.get_ticks() % 1000 > 500:
             prompt_display = prompt_font.render(
                 "Press SPACE", True, (255, 255, 255)
