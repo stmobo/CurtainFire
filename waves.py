@@ -5,26 +5,16 @@ import random
 import entities
 
 def generate_wave_color():
-    n_tries = 0
-    while True:
-        n1 = random.uniform(0, 255)
-        n2 = random.uniform(32, 96)
-        n3 = random.uniform(32, 96)
+    c = pygame.Color(255, 255, 255, 255)
 
-        if random.choice((True, False)):
-            n2 = int(np.clip(n1+n2, 0, 255))
-        else:
-            n2 = int(np.clip(n1-n2, 0, 255))
+    c.hsva = (
+        random.uniform(0, 360),
+        random.uniform(75, 100),
+        100,
+        100
+    )
 
-        if random.choice((True, False)):
-            n3 = int(np.clip(n1+n3, 0, 255))
-        else:
-            n3 = int(np.clip(n1-n3, 0, 255))
-
-        candidate = random.sample((n1, n2, n3), k=3)
-
-        if n_tries >= 4 or np.sum(candidate) > 96:
-            return candidate
+    return c
 
 class Wave:
     def __init__(self, wave_size):
