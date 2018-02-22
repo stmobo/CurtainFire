@@ -152,6 +152,82 @@ class TargetedSpreadWave(Wave):
                 self.n_bullets_spawned += 1
 
 
+class ClusterWave(Wave):
+    name = "MIRV"
+    bullets_per_cluster = 6
+    leader_speed = 350
+
+    cluster_speed = 250
+    homing_cluster_speed = 50
+
+    leader_detonate_distance = 5
+    initialized = False
+
+    def __init__(self, wave_size):
+        Wave.__init__(self, wave_size)
+
+        self.n_clusters = math.ceil(wave_size / self.bullets_per_cluster)
+        self.wave_size = self.n_clusters * self.bullets_per_cluster
+        self.targets = []
+        self.leaders = []
+
+        for i in range(self.n_clusters):
+            self.targets.append(np.array((
+                random.uniform(50, 750),
+                random.uniform(50, 750)
+            ), dtype=np.int))
+
+    def update(self):
+        if not self.initialized:
+            self.initialized = True
+            leader_color = (255, 255, 255, 255)
+
+            for target in self.targets:
+                start = np.array(
+                    (random.uniform(20, 780), 795), dtype=np.int
+                )
+
+                disp_vec = start - target
+                disp_vec = disp_vec / np.sqrt(np.sum(disp_vec ** 2))
+
+                new_sprite = entities.TracerBullet(
+                    self.color, leader_color, start,
+                    disp_vec * -self.leader_speed, (0, 0)
+                )
+
+                self.bullets.add(new_sprite)
+                self.leaders.append(new_sprite)
+                self.n_bullets_spawned += 1
+        else:
+            for i, l, t in zip(range(self.n_clusters), self.leaders, self.targets):
+                if l is None:
+                    continue
+
+                dist = np.sqrt(np.sum((l.pos - t) ** 2))
+                if dist <= self.leader_detonate_distance:
+                    homing = (random.random() >= 0.75)
+                    s = self.homing_cluster_speed if homing else self.cluster_speed
+                    for angle in np.linspace(0, 2*np.pi, self.bullets_per_cluster+1):
+                        vel_x = -np.sin(angle) * s
+                        vel_y = -np.cos(angle) * s
+
+                        new_sprite = None
+                        if homing:
+                            new_sprite = entities.HomingBullet(
+                                self.color, l.pos, entities.player, 400
+                            )
+                            new_sprite.vel = np.array((vel_x, vel_y))
+                        else:
+                            new_sprite = entities.ConstantPathBullet(
+                                self.color, l.pos, (vel_x, vel_y), (0, 0)
+                            )
+
+                        self.bullets.add(new_sprite)
+                        self.n_bullets_spawned += 1
+                    l.kill()
+                    self.leaders[i] = None
+
+
 class GridLockWave(Wave):
     name = "Gridlock"
     grid_spacing = 30
@@ -302,7 +378,8 @@ possible_wave_types = [
     HorizontalPatternWave,
     VerticalPatternWave,
     TargetedSpreadWave,
-    GridLockWave
+    GridLockWave,
+    ClusterWave
 ]
 
 wave_queue = []

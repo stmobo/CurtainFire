@@ -144,6 +144,43 @@ class ConstantPathBullet(Bullet):
         self.update_rect()
 
 
+class TracerBullet(Bullet):
+    def __init__(self, c1, c2, pos, vel, acc):
+        Bullet.__init__(self, c1, pos, 0)
+
+        self.color_2 = c2
+        self.vel = np.array(vel)
+        self.acc = np.array(acc)
+
+        self.base1 = pygame.Surface((20, 10), flags=pygame.SRCALPHA)
+        self.base1.fill((0, 0, 0, 0))
+        pygame.draw.polygon(
+            self.base1, self.color,
+            [(0, 0), (0, 10), (20, 5)]
+        )
+
+        self.base2 = pygame.Surface((20, 10), flags=pygame.SRCALPHA)
+        self.base2.fill((0, 0, 0, 0))
+        pygame.draw.polygon(
+            self.base2, self.color_2,
+            [(0, 0), (0, 10), (20, 5)]
+        )
+
+        self.image = self.base_image = self.base1
+        self.rect = self.image.get_rect()
+
+    def update(self, dt):
+        self.update_pos(dt)
+
+        if pygame.time.get_ticks() % 200 > 100:
+            self.base_image = self.base1
+        else:
+            self.base_image = self.base2
+
+        self.rotate_to_velocity()
+        self.update_rect()
+
+
 class HomingBullet(Bullet):
     def __init__(self, color, pos, target, target_acc):
         Bullet.__init__(self, color, pos, 0)
