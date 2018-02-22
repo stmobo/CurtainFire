@@ -106,29 +106,15 @@ while True:
                 (400 - (w/2), 400 - (h/2))
             )
 
-    # Blit a score readout....
+    # Display interesting info at the bottom of the screen.
     score_display = display_font.render(
-        "Score: {:05n}".format(waves.score), True, (255, 255, 255)
+        "Wave: {:02n} Score: {:05n} Wave Size: {:04n}".format(
+            waves.current_wave_number, waves.score, waves.current_wave_size+1
+        ), True, (255, 255, 255)
     )
 
     sw, sh = score_display.get_size()
     screen.blit(score_display, (400 - (sw/2), 800-sh))
-
-    # A wave count readout on top of that...
-    wave_display = display_font.render(
-        "Wave: {:02n}".format(waves.current_wave_number), True, (255, 255, 255)
-    )
-
-    ww, wh = wave_display.get_size()
-    screen.blit(wave_display, (400-(ww/2), 800-sh-wh))
-
-    # ...and a wave size display on top of that
-    size_display = display_font.render(
-        "Wave Size: {:04n}".format(waves.current_wave_size+1), True, (255, 255, 255)
-    )
-
-    wsw, wsh = size_display.get_size()
-    screen.blit(size_display, (400-(wsw/2), 800-sh-wh-wsh))
 
     if t > 3:
         time_display = display_font.render(
