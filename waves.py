@@ -379,7 +379,8 @@ wave_queue = []
 current_wave = None
 wave_completion_time = None
 
-base_wave_size = 40
+starting_wave_size = 80
+base_wave_size = starting_wave_size
 wave_size_increase = 15
 wave_size_sigma = wave_size_increase / 2
 
@@ -392,7 +393,7 @@ def reset():
     global current_wave_number, score, current_wave_size
 
     wave_queue = []
-    base_wave_size = 75
+    base_wave_size = starting_wave_size
     current_wave_number = 1
     score = 0
     current_wave_size = int(random.normalvariate(base_wave_size, wave_size_sigma))
