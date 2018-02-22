@@ -9,7 +9,7 @@ def generate_wave_color():
 
     c.hsva = (
         random.uniform(0, 360),
-        random.uniform(75, 100),
+        random.uniform(85, 100),
         100,
         100
     )
@@ -270,13 +270,12 @@ class GridLockWave(Wave):
                         self.n_bullets_spawned += 1
 
 
-class TargetedBeamWave(Wave):
-    name = "Sharpshooter"
-    fire_period = 0.1
+class HomingTracerWave(Wave):
+    name = "Bombing Run"
+    fire_period = 0.75
     bullet_speed = 200
     leader_speed = 300
-    spread_angle = 60
-    bullets_per_spread = 9
+    bullets_per_spread = 20
 
     initialized = False
     last_n = -1
@@ -285,11 +284,89 @@ class TargetedBeamWave(Wave):
     def __init__(self, wave_size):
         Wave.__init__(self, wave_size)
 
+        self.bullets_per_spread = int(wave_size / 5)
+
+    def update_leader(self, leader):
+        for i in range(self.bullets_per_spread):
+            if self.n_bullets_spawned <= self.wave_size:
+                new_sprite = entities.HomingBullet(
+                    self.color, leader.pos, entities.player, 400
+                )
+
+                new_sprite.vel = np.array((
+                    random.uniform(-100, 100),
+                    random.uniform(-100, 100)
+                ))
+
+                self.bullets.add(new_sprite)
+                self.n_bullets_spawned += 1
+
+    def update(self):
+        self.t += 0.025
+        if not self.initialized:
+            self.initialized = True
+
+            if random.choice((True, False)):
+                self.leader_1 = entities.TracerBullet(
+                    self.color, (255, 255, 255, 255),
+                    (100, 5), (-50, self.leader_speed), (300, 0)
+                )
+
+                self.bullets.add(self.leader_1)
+
+                self.leader_2 = entities.TracerBullet(
+                    self.color, (255, 255, 255, 255),
+                    (700, 795), (50, -self.leader_speed), (-300, 0)
+                )
+
+                self.bullets.add(self.leader_2)
+            else:
+                self.leader_1 = entities.TracerBullet(
+                    self.color, (255, 255, 255, 255),
+                    (795, 100), (-self.leader_speed, -50), (0, 300)
+                )
+
+                self.bullets.add(self.leader_1)
+
+                self.leader_2 = entities.TracerBullet(
+                    self.color, (255, 255, 255, 255),
+                    (5, 700), (self.leader_speed, 50), (0, -300)
+                )
+
+                self.bullets.add(self.leader_2)
+        else:
+            n = math.floor(self.t / self.fire_period)
+
+            if n > self.last_n:
+                self.last_n = n
+
+                if not self.leader_1.dead:
+                    self.update_leader(self.leader_1)
+
+                if not self.leader_2.dead:
+                    self.update_leader(self.leader_2)
+
+
+class TrackingSpreadWave(Wave):
+    name = "Sharpshooter"
+    fire_period = 1
+    bullet_speed = 200
+    leader_speed = 150
+    spread_angle = 30
+
+    initialized = False
+    last_n = -1
+    t = 0
+
+    sub_n1 = -1
+    sub_n2 = -1
+
+    def __init__(self, wave_size):
+        Wave.__init__(self, wave_size)
+
+        self.bullets_per_spread = wave_size / 9
+
         self.beam_group = pygame.sprite.Group()
-        self.start_pos = np.array((
-            random.uniform(10, 790),
-            random.uniform(10, 790)
-        ))
 
     def update_tracking_beam(self, tracking_beam):
         for angle_offset in np.linspace(0, self.spread_angle, self.bullets_per_spread):
@@ -300,22 +377,15 @@ class TargetedBeamWave(Wave):
                 )
 
                 r_off = np.radians(angle_offset) - (np.radians(self.spread_angle) / 2)
-                #r_off += np.radians(random.uniform(-90, 90))
 
                 vel = np.array((
                     -np.sin(base_angle + r_off) * self.bullet_speed,
                     -np.cos(base_angle + r_off) * self.bullet_speed
                 ))
 
-                new_sprite = None
-                if random.choice((True, False)):
-                    new_sprite = entities.ConstantPathBullet(
-                        self.color, tracking_beam.pos, vel, np.zeros(2)
-                    )
-                else:
-                    new_sprite = entities.HomingBullet(
-                        self.color, tracking_beam.pos, entities.player, 400
-                    )
+                new_sprite = entities.ConstantPathBullet(
+                    self.color, tracking_beam.pos, vel, np.zeros(2)
+                )
 
                 self.bullets.add(new_sprite)
                 self.n_bullets_spawned += 1
@@ -327,14 +397,14 @@ class TargetedBeamWave(Wave):
 
             self.leader_1 = entities.TracerBullet(
                 self.color, (255, 255, 255, 255),
-                (20, 5), (0, self.leader_speed), np.zeros(2)
+                (100, 5), (0, self.leader_speed), (0, 0)
             )
 
             self.bullets.add(self.leader_1)
 
             self.leader_2 = entities.TracerBullet(
                 self.color, (255, 255, 255, 255),
-                (780, 795), (0, -self.leader_speed), np.zeros(2)
+                (700, 795), (0, -self.leader_speed), (0, 0)
             )
 
             self.bullets.add(self.leader_2)
@@ -467,7 +537,9 @@ possible_wave_types = [
     VerticalPatternWave,
     TargetedSpreadWave,
     GridLockWave,
-    ClusterWave
+    ClusterWave,
+    TrackingSpreadWave,
+    HomingTracerWave
 ]
 
 wave_queue = []
@@ -483,9 +555,11 @@ current_wave_size = 0
 current_wave_number = 0
 score = 0
 
+force_starting_wave = None
+
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
-    global current_wave_number, score, current_wave_size
+    global current_wave_number, score, current_wave_size, force_starting_wave
 
     wave_queue = random.sample(
         possible_wave_types, k=len(possible_wave_types)
@@ -503,7 +577,11 @@ def reset():
     if current_wave is not None:
         current_wave.end()
 
-    current_wave = TargetedBeamWave(current_wave_size)
+    if force_starting_wave is not None:
+        current_wave = force_starting_wave(current_wave_size)
+    else:
+        current_wave = wave_queue.pop()(current_wave_size)
+
     wave_completion_time = None
 
 def next_wave():
