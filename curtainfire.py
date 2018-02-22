@@ -20,6 +20,7 @@ t = 0
 title_font = pygame.font.Font("aldo_the_apache/AldotheApache.ttf", 150)
 display_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 50)
 prompt_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 75)
+fps_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 25)
 
 while True:
     dt = clk.tick(60) / 1000
@@ -115,6 +116,32 @@ while True:
 
     sw, sh = score_display.get_size()
     screen.blit(score_display, (400 - (sw/2), 800-sh))
+
+    if waves.current_wave is not None:
+        pattern_display = None
+
+        if len(waves.wave_queue) >= 1:
+            pattern_display = fps_font.render(
+                "Pattern: {}    Next Pattern: {}".format(
+                    waves.current_wave.name,
+                    waves.wave_queue[-1].name
+                ), True, (255, 255, 255)
+            )
+        else:
+            pattern_display = fps_font.render(
+                "Pattern: {}".format(
+                    waves.current_wave.name
+                ), True, (255, 255, 255)
+            )
+
+        pw, ph = pattern_display.get_size()
+        screen.blit(pattern_display, (400 - (pw/2), 800-sh-ph))
+
+    fps_display = fps_font.render(
+        "{:02n}".format(clk.get_fps()), True, (255, 255, 255)
+    )
+
+    screen.blit(fps_display, (0, 0))
 
     if t > 3:
         time_display = display_font.render(

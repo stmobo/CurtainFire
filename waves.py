@@ -34,7 +34,7 @@ class Wave:
 
 
 class HomingBurstWave(Wave):
-    name = "Firework"
+    name = "Raindrops"
 
     def update(self):
         if self.n_bullets_spawned <= self.wave_size:
@@ -52,7 +52,7 @@ class HomingBurstWave(Wave):
 
 
 class FixedSpreadWave(Wave):
-    name = "Sprinkler"
+    name = "Wavefront"
     spread_angle = 137
     angle_offset = 0
     speed = 200
@@ -392,7 +392,10 @@ def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
     global current_wave_number, score, current_wave_size
 
-    wave_queue = []
+    wave_queue = random.sample(
+        possible_wave_types, k=len(possible_wave_types)
+    )
+
     base_wave_size = starting_wave_size
     current_wave_number = 1
     score = 0
@@ -402,7 +405,7 @@ def reset():
     print("  Starting wave "+str(current_wave_number))
     print("  Current wave size: "+str(current_wave_size))
 
-    current_wave = random.choice(possible_wave_types)(current_wave_size)
+    current_wave = wave_queue.pop()(current_wave_size)
     wave_completion_time = None
 
 def next_wave():
