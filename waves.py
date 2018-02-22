@@ -24,7 +24,7 @@ class Wave:
         self.n_bullets_spawned = 0
 
     def wave_completed(self):
-        if len(self.bullets.sprites()) == 0 and self.n_bullets_spawned >= self.wave_size:
+        if len(self.bullets.sprites()) == 0 and self.n_bullets_spawned >= self.wave_size-20:
             return True
         else:
             return False
@@ -168,6 +168,8 @@ class ClusterWave(Wave):
             ), dtype=np.int))
 
     def update(self):
+        global score
+
         if not self.initialized:
             self.initialized = True
             leader_color = (255, 255, 255, 255)
@@ -187,6 +189,7 @@ class ClusterWave(Wave):
 
                 self.bullets.add(new_sprite)
                 self.leaders.append(new_sprite)
+                score += 1
                 self.n_bullets_spawned += 1
         else:
             for i, l, t in zip(range(self.n_clusters), self.leaders, self.targets):
@@ -195,9 +198,9 @@ class ClusterWave(Wave):
 
                 dist = np.sqrt(np.sum((l.pos - t) ** 2))
                 if dist <= self.leader_detonate_distance:
-                    homing = (random.random() >= 0.75)
+                    homing = random.random() > .5
                     s = self.homing_cluster_speed if homing else self.cluster_speed
-                    for angle in np.linspace(0, 2*np.pi, self.bullets_per_cluster+1):
+                    for angle in np.linspace(0, 2*np.pi, self.bullets_per_cluster, endpoint=False):
                         vel_x = -np.sin(angle) * s
                         vel_y = -np.cos(angle) * s
 
