@@ -93,7 +93,7 @@ class FixedSpreadWave(Wave):
 
 class TargetedSpreadWave(Wave):
     name = "Rubberhose"
-    speed = 300
+    speed = 400
 
     def __init__(self, wave_size):
         Wave.__init__(self, wave_size)
@@ -118,7 +118,7 @@ class TargetedSpreadWave(Wave):
     def update(self):
         for i in range(self.bullets_per_tick):
             if self.n_bullets_spawned <= self.wave_size:
-                angle_offset = random.uniform(-30, 30)
+                angle_offset = random.uniform(-20, 20)
                 disp_vec = self.start - entities.player.pos
 
                 base_angle = np.arctan2(disp_vec[0], disp_vec[1])
@@ -130,7 +130,7 @@ class TargetedSpreadWave(Wave):
                 new_sprite = None
                 if self.homing:
                     new_sprite = entities.HomingBullet(
-                        self.color, self.start, entities.player, 400
+                        self.color, self.start, entities.player, 200
                     )
                     new_sprite.vel = np.array((vel_x, vel_y))
                 else:
