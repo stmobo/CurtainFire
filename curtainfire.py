@@ -54,6 +54,7 @@ while True:
         # Normal game flow-- update bullets and check for invalid positions.
         entities.player.update(dt)
         entities.all_bullets.update(dt)
+        entities.all_beams.update(dt)
 
         for sprite in entities.all_bullets.sprites():
             if (
@@ -69,6 +70,7 @@ while True:
         # Bit of a dirty hack-- only display player position if it's valid.
         screen.blit(entities.player.image, entities.player.rect)
     entities.all_bullets.draw(screen)
+    entities.all_beams.draw(screen)
 
     if game_running and t < 3:
         # Countdown to game start.

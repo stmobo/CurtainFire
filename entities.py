@@ -5,6 +5,7 @@ import math
 screen_dims = (800, 800)
 
 all_bullets = pygame.sprite.Group()
+all_beams = pygame.sprite.Group()
 homing_bullets = pygame.sprite.Group()
 
 class Entity(pygame.sprite.Sprite):
@@ -19,6 +20,12 @@ class Entity(pygame.sprite.Sprite):
 
         self.rvel = 0
         self.racc = 0
+
+        self.dead = False
+
+    def kill(self):
+        self.dead = True
+        pygame.sprite.Sprite.kill(self)
 
     def update_pos(self, dt):
         self.vel = self.vel + (self.acc * dt)
@@ -42,6 +49,12 @@ class Entity(pygame.sprite.Sprite):
 
     def rotate_to_velocity(self):
         rot = np.arctan2(self.vel[1], self.vel[0])
+
+        self.image = pygame.transform.rotate(self.base_image, -np.degrees(rot))
+
+    def rotate_towards_point(self, target):
+        disp = self.pos - target
+        rot = np.arctan2(disp[1], disp[0])
 
         self.image = pygame.transform.rotate(self.base_image, -np.degrees(rot))
 
@@ -111,6 +124,106 @@ class Player(Entity):
             self.pos[1] = screen_dims[1]-3
 
         self.update_rect()
+
+
+class Beam(Entity):
+    def __init__(self, start, end, width, color):
+        Entity.__init__(self, start, 0)
+        self.color = color
+        self.end = end
+        self.width = width
+
+        all_beams.add(self)
+
+    def update(self, dt):
+        self.update_pos(dt)
+
+        self.image = pygame.Surface(screen_dims, flags=pygame.SRCALPHA)
+        self.image.fill((0, 0, 0, 0))
+
+        pygame.draw.line(
+            self.image, self.color, self.pos, self.end, self.width
+        )
+
+        self.rect = self.image.get_rect()
+        self.rect.x = 0
+        self.rect.y = 0
+
+
+class Ray(Beam):
+    def __init__(self, start, end, width, color):
+        Beam.__init__(self, start, end, width, color)
+        self.target_vector = np.array((0, 1))
+
+    def update(self, dt):
+        self.update_pos(dt)
+
+        disp_vec = self.end.astype(np.float) - self.pos.astype(np.float)
+        disp_vec = disp_vec / np.sqrt(np.sum(disp_vec ** 2))
+        self.target_vector = disp_vec
+
+        endpt = np.zeros(2)
+
+        if abs(disp_vec[0]) < abs(disp_vec[1]):
+            r = disp_vec[0] / disp_vec[1]
+            if disp_vec[1] < 0:
+                endpt[1] = 0
+                endpt[0] = self.pos[0] + (-r * self.pos[1])
+            else:
+                endpt[1] = screen_dims[1]
+                endpt[0] = self.pos[0] + (r * (screen_dims[1] - self.pos[1]))
+        else:
+            r = disp_vec[1] / disp_vec[0]
+            if disp_vec[0] < 0:
+                endpt[0] = 0
+                endpt[1] = self.pos[1] + (-r * self.pos[0])
+            else:
+                endpt[0] = screen_dims[0]
+                endpt[1] = self.pos[1] + (r * (screen_dims[0] - self.pos[0]))
+
+        self.image = pygame.Surface(screen_dims, flags=pygame.SRCALPHA)
+        self.image.fill((0, 0, 0, 0))
+
+        pygame.draw.line(
+            self.image, self.color, self.pos, endpt, self.width
+        )
+
+        self.rect = self.image.get_rect()
+        self.rect.x = 0
+        self.rect.y = 0
+
+
+class TrackingRay(Ray):
+    def __init__(self, start, target, width, color):
+        Ray.__init__(self, start, target.pos, width, color)
+
+        self.target = target
+
+    def update(self, dt):
+        self.end = self.target.pos
+        Ray.update(self, dt)
+
+
+class MovingTrackerRay(TrackingRay):
+    def __init__(self, following, target, width, color):
+        TrackingRay.__init__(self, following.pos, target, width, color)
+
+        self.following = following
+
+    def update(self, dt):
+        self.pos = self.following.pos
+        TrackingRay.update(self, dt)
+
+
+class TrackingBeam(Beam):
+    def __init__(self, start, target, width, color):
+        Beam.__init__(self, start, target.pos, width, color)
+
+        self.target = target
+
+    def update(self, dt):
+        self.end = self.target.pos
+        Beam.update(self, dt)
 
 
 class Bullet(Entity):

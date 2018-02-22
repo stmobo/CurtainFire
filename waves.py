@@ -32,6 +32,9 @@ class Wave:
     def update(self):
         pass
 
+    def end(self):
+        pass
+
 
 class HomingBurstWave(Wave):
     name = "Raindrops"
@@ -267,6 +270,98 @@ class GridLockWave(Wave):
                         self.n_bullets_spawned += 1
 
 
+class TargetedBeamWave(Wave):
+    name = "Sharpshooter"
+    fire_period = 0.1
+    bullet_speed = 200
+    leader_speed = 300
+    spread_angle = 60
+    bullets_per_spread = 9
+
+    initialized = False
+    last_n = -1
+    t = 0
+
+    def __init__(self, wave_size):
+        Wave.__init__(self, wave_size)
+
+        self.beam_group = pygame.sprite.Group()
+        self.start_pos = np.array((
+            random.uniform(10, 790),
+            random.uniform(10, 790)
+        ))
+
+    def update_tracking_beam(self, tracking_beam):
+        for angle_offset in np.linspace(0, self.spread_angle, self.bullets_per_spread):
+            if self.n_bullets_spawned <= self.wave_size:
+                base_angle = np.arctan2(
+                    -tracking_beam.target_vector[0],
+                    -tracking_beam.target_vector[1]
+                )
+
+                r_off = np.radians(angle_offset) - (np.radians(self.spread_angle) / 2)
+                #r_off += np.radians(random.uniform(-90, 90))
+
+                vel = np.array((
+                    -np.sin(base_angle + r_off) * self.bullet_speed,
+                    -np.cos(base_angle + r_off) * self.bullet_speed
+                ))
+
+                new_sprite = None
+                if random.choice((True, False)):
+                    new_sprite = entities.ConstantPathBullet(
+                        self.color, tracking_beam.pos, vel, np.zeros(2)
+                    )
+                else:
+                    new_sprite = entities.HomingBullet(
+                        self.color, tracking_beam.pos, entities.player, 400
+                    )
+
+                self.bullets.add(new_sprite)
+                self.n_bullets_spawned += 1
+
+    def update(self):
+        self.t += 0.025
+        if not self.initialized:
+            self.initialized = True
+
+            self.leader_1 = entities.TracerBullet(
+                self.color, (255, 255, 255, 255),
+                (20, 5), (0, self.leader_speed), np.zeros(2)
+            )
+
+            self.bullets.add(self.leader_1)
+
+            self.leader_2 = entities.TracerBullet(
+                self.color, (255, 255, 255, 255),
+                (780, 795), (0, -self.leader_speed), np.zeros(2)
+            )
+
+            self.bullets.add(self.leader_2)
+
+            self.tracking_beam_1 = entities.MovingTrackerRay(self.leader_1, entities.player, 1, self.color)
+            self.tracking_beam_2 = entities.MovingTrackerRay(self.leader_2, entities.player, 1, self.color)
+        else:
+            n = math.floor(self.t / self.fire_period)
+
+            if n > self.last_n:
+                self.last_n = n
+
+                if not self.leader_1.dead:
+                    self.update_tracking_beam(self.tracking_beam_1)
+                else:
+                    self.tracking_beam_1.kill()
+
+                if not self.leader_2.dead:
+                    self.update_tracking_beam(self.tracking_beam_2)
+                else:
+                    self.tracking_beam_2.kill()
+
+    def end(self):
+        self.tracking_beam_1.kill()
+        self.tracking_beam_2.kill()
+
+
 class PatternedWave(Wave):
     # spawn points and target points are matched; spreads are fired from
     # spawn_points[i] to target_points[i]
@@ -405,7 +500,10 @@ def reset():
     print("  Starting wave "+str(current_wave_number))
     print("  Current wave size: "+str(current_wave_size))
 
-    current_wave = wave_queue.pop()(current_wave_size)
+    if current_wave is not None:
+        current_wave.end()
+
+    current_wave = TargetedBeamWave(current_wave_size)
     wave_completion_time = None
 
 def next_wave():
@@ -434,6 +532,8 @@ def update():
     current_wave.update()
     current_wave_size = current_wave.wave_size
     if current_wave.wave_completed():
+        current_wave.end()
+
         if wave_completion_time is None:
             print("Wave completed!")
             wave_completion_time = pygame.time.get_ticks()
