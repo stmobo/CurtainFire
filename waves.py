@@ -44,6 +44,8 @@ class Wave:
 
 
 class HomingBurstWave(Wave):
+    name = "Firework"
+
     def update(self):
         if self.n_bullets_spawned <= self.wave_size:
             new_sprite = entities.HomingBullet(
@@ -60,6 +62,7 @@ class HomingBurstWave(Wave):
 
 
 class FixedSpreadWave(Wave):
+    name = "Sprinkler"
     spread_angle = 137
     angle_offset = 0
     speed = 200
@@ -99,6 +102,7 @@ class FixedSpreadWave(Wave):
 
 
 class TargetedSpreadWave(Wave):
+    name = "Rubberhose"
     speed = 300
 
     def __init__(self, wave_size):
@@ -146,6 +150,52 @@ class TargetedSpreadWave(Wave):
 
                 self.bullets.add(new_sprite)
                 self.n_bullets_spawned += 1
+
+
+class GridLockWave(Wave):
+    name = "Gridlock"
+    grid_spacing = 30
+    n_per_line = 10
+    speed = 200
+
+    def __init__(self, wave_size):
+        self.n_side = math.floor((800 - 1) / self.grid_spacing)
+        self.n_per_line = math.ceil(wave_size / (2 * self.n_side))
+
+        Wave.__init__(self, 2 * self.n_side * self.n_per_line)
+
+        self.t = 0
+
+        self.bullet_spacing = 800 / self.speed / self.n_per_line / 2
+        self.last_fire_cycle = -1
+
+    def update(self):
+        self.t += 0.025
+        fire_cycle = math.floor(self.t / self.bullet_spacing)
+
+        if fire_cycle > self.last_fire_cycle:
+            self.last_fire_cycle = fire_cycle
+            cycle_offset_x = random.uniform(-self.grid_spacing, self.grid_spacing)
+            cycle_offset_y = random.uniform(-self.grid_spacing, self.grid_spacing)
+            if self.n_bullets_spawned <= self.wave_size:
+                for i in range(self.n_side):
+                    if random.choice((True, False)):
+                        x_sprite = entities.ConstantPathBullet(
+                            self.color,
+                            (1+(i*self.grid_spacing)+cycle_offset_x, 1),
+                            (0, self.speed), (0, 0)
+                        )
+                        self.bullets.add(x_sprite)
+                        self.n_bullets_spawned += 1
+
+                    if random.choice((True, False)):
+                        y_sprite = entities.ConstantPathBullet(
+                            self.color,
+                            (1, 1+(i*self.grid_spacing)+cycle_offset_y),
+                            (self.speed, 0), (0, 0)
+                        )
+                        self.bullets.add(y_sprite)
+                        self.n_bullets_spawned += 1
 
 
 class PatternedWave(Wave):
@@ -206,6 +256,8 @@ class PatternedWave(Wave):
 
 
 class TrianglePatternWave(PatternedWave):
+    name = "Pulsar"
+
     def __init__(self, wave_size):
         PatternedWave.__init__(
             self, wave_size, int(random.uniform(3, 7)),
@@ -216,6 +268,8 @@ class TrianglePatternWave(PatternedWave):
 
 
 class HorizontalPatternWave(PatternedWave):
+    name = "Resonance"
+
     def __init__(self, wave_size):
         PatternedWave.__init__(
             self, wave_size, int(random.uniform(2, 4)),
@@ -228,6 +282,8 @@ class HorizontalPatternWave(PatternedWave):
 
 
 class VerticalPatternWave(PatternedWave):
+    name = "Supercollider"
+
     def __init__(self, wave_size):
         PatternedWave.__init__(
             self, wave_size, int(random.uniform(2, 4)),
@@ -245,7 +301,8 @@ possible_wave_types = [
     TrianglePatternWave,
     HorizontalPatternWave,
     VerticalPatternWave,
-    TargetedSpreadWave
+    TargetedSpreadWave,
+    GridLockWave
 ]
 
 wave_queue = []
@@ -298,9 +355,10 @@ def next_wave():
     wave_completion_time = None
 
 def update():
-    global current_wave, wave_completion_time
+    global current_wave, wave_completion_time, current_wave_size
 
     current_wave.update()
+    current_wave_size = current_wave.wave_size
     if current_wave.wave_completed():
         if wave_completion_time is None:
             print("Wave completed!")
