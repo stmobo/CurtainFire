@@ -119,15 +119,15 @@ class Player(Entity):
             self.update_movement()
             self.update_pos(dt)
 
-        if self.pos[0] < 3:
-            self.pos[0] = 3
-        elif self.pos[0] > game_data.screen_dims[0]-3:
-            self.pos[0] = game_data.screen_dims[0]-3
+        if self.pos[0] < 15:
+            self.pos[0] = 15
+        elif self.pos[0] > game_data.screen_dims[0]-15:
+            self.pos[0] = game_data.screen_dims[0]-15
 
-        if self.pos[1] < 3:
-            self.pos[1] = 3
-        elif self.pos[1] > game_data.screen_dims[1]-3:
-            self.pos[1] = game_data.screen_dims[1]-3
+        if self.pos[1] < 15:
+            self.pos[1] = 15
+        elif self.pos[1] > game_data.screen_dims[1]-15:
+            self.pos[1] = game_data.screen_dims[1]-15
 
         self.update_rect()
 
