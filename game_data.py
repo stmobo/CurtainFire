@@ -25,7 +25,7 @@ hs_screen_width = 350
 
 lives = 3
 
-respawn_length = 3
+respawn_length = 4.5
 respawn_timer = 0
 
 def reset():

@@ -62,7 +62,7 @@ while True:
 
     effects.all_effects.update(dt)
 
-    if game_data.get_game_state() == 'respawn' and entities.player.dead and game_data.respawn_timer < 2.5:
+    if game_data.get_game_state() == 'respawn' and entities.player.dead and game_data.respawn_timer < 3:
         entities.player.reset()
 
     # Normal game flow-- update bullets and check for invalid positions.
