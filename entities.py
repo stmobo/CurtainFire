@@ -78,6 +78,9 @@ class Player(Entity):
         self.image = pygame.Surface([5, 5], flags=pygame.SRCALPHA)
         self.image.fill((0, 255, 0, 255))
 
+    def set_color(self, color):
+        self.image.fill(color)
+
     def update_movement(self):
         pressed = pygame.key.get_pressed()
 

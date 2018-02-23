@@ -25,7 +25,7 @@ class Wave:
         self.n_bullets_spawned = 0
 
     def wave_completed(self):
-        if len(self.bullets.sprites()) == 0 and self.n_bullets_spawned >= self.wave_size-20:
+        if len(self.bullets.sprites()) == 0 and self.n_bullets_spawned > 0:
             return True
         else:
             return False
@@ -303,8 +303,8 @@ class HomingTracerWave(Wave):
                 )
 
                 new_sprite.vel = np.array((
-                    random.uniform(-100, 100),
-                    random.uniform(-100, 100)
+                    random.uniform(-50, 50),
+                    random.uniform(-50, 50)
                 ))
 
                 self.bullets.add(new_sprite)
@@ -562,7 +562,7 @@ base_wave_size = starting_wave_size
 wave_size_increase = 5
 wave_size_sigma = wave_size_increase
 
-force_starting_wave = FixedSpreadWave
+force_starting_wave = HomingTracerWave
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size

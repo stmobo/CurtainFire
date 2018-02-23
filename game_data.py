@@ -23,6 +23,11 @@ active_subscreen = None
 
 hs_screen_width = 350
 
+lives = 3
+
+respawn_length = 3
+respawn_timer = 0
+
 def reset():
     global t, score, current_wave_number, game_ending, game_running
     global game_end_time
@@ -42,7 +47,7 @@ def game_over():
     game_end_time = t
 
 def get_game_state():
-    global game_running, t, active_subscreen
+    global game_running, t, respawn_timer, active_subscreen
 
     if active_subscreen is not None:
         return active_subscreen
@@ -51,6 +56,8 @@ def get_game_state():
     else:
         if t < 3:
             return 'start-countdown'
+        elif respawn_timer > 0:
+            return 'respawn'
         else:
             return 'gameplay'
 

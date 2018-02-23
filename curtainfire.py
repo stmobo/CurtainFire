@@ -31,6 +31,10 @@ while True:
     if game_data.game_running:
         game_data.t += dt
 
+        # Decrement respawn timer if necessary:
+        if game_data.get_game_state() == 'respawn':
+            game_data.respawn_timer -= dt
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
@@ -58,6 +62,9 @@ while True:
 
     effects.all_effects.update(dt)
 
+    if game_data.get_game_state() == 'respawn' and entities.player.dead and game_data.respawn_timer < 2.5:
+        entities.player.reset()
+
     # Normal game flow-- update bullets and check for invalid positions.
     entities.player.update(dt)
     entities.all_bullets.update(dt)
@@ -77,6 +84,12 @@ while True:
     # Blit bullets and the player below everything else.
     if hasattr(entities.player, 'rect') and not entities.player.dead:
         # Bit of a dirty hack-- only display player position if it's valid.
+
+        if game_data.get_game_state() == 'respawn' and (pygame.time.get_ticks() % 1000 > 500):
+            entities.player.set_color((255, 255, 255, 255))
+        else:
+            entities.player.set_color((0, 255, 0, 255))
+
         screen.blit(entities.player.image, entities.player.rect)
 
     entities.all_bullets.draw(screen)
@@ -180,9 +193,29 @@ while True:
             hs_display, (800 + (game_data.hs_screen_width / 2) - (w / 2), 790 - h)
         )
 
+    if game_data.game_running:
+        # Render display segment title
+        t = game_data.display_font.render(
+            "Lives: ", True, (255, 255, 255)
+        )
+
+        w, h = t.get_size()
+        screen.blit(t, (815, 740-h))
+
+        # Render lives count in white normally, use red if last lift
+        color = (255, 255, 255, 255)
+        if game_data.lives == 0:
+            color = (255, 0, 0, 255)
+
+        # Blit lives count to screen.
+        c = game_data.display_font.render(
+            "{:01n}".format(game_data.lives), True, color
+        )
+        screen.blit(c, (815+h+65, 740-h))
+
     pygame.display.flip()
 
-    if game_data.game_running:
+    if game_data.get_game_state() == 'gameplay':
         collision_check_list = pygame.sprite.spritecollide(entities.player, entities.all_bullets, False)
         bullet_collided = False
 
@@ -196,8 +229,13 @@ while True:
 
             effects.ExplosionEffect(entities.player.pos, 0, .5, 1)
             entities.player.kill()
-            game_data.game_over()
 
-            if scores.is_high_score():
-                scores.name_input_screen.reset()
-                game_data.active_subscreen = 'hs-name-input'
+            game_data.lives -= 1
+            game_data.respawn_timer = game_data.respawn_length
+
+            if game_data.lives < 0:
+                game_data.game_over()
+
+                if scores.is_high_score():
+                    scores.name_input_screen.reset()
+                    game_data.active_subscreen = 'hs-name-input'
