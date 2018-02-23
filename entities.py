@@ -81,23 +81,28 @@ class Player(Entity):
     def update_movement(self):
         pressed = pygame.key.get_pressed()
 
+        left = pressed[pygame.K_LEFT] or pressed[pygame.K_a]
+        right = pressed[pygame.K_RIGHT] or pressed[pygame.K_d]
+        up = pressed[pygame.K_UP] or pressed[pygame.K_w]
+        down = pressed[pygame.K_DOWN] or pressed[pygame.K_s]
+
         if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]:
             self.movement_magnitude = 150
         else:
             self.movement_magnitude = 300
 
-        if pressed[pygame.K_LEFT] == pressed[pygame.K_RIGHT]:
+        if left == right:
             self.vel[0] = 0
-        elif pressed[pygame.K_LEFT]:
+        elif left:
             self.vel[0] = -self.movement_magnitude
-        elif pressed[pygame.K_RIGHT]:
+        elif right:
             self.vel[0] = self.movement_magnitude
 
-        if pressed[pygame.K_UP] == pressed[pygame.K_DOWN]:
+        if up == down:
             self.vel[1] = 0
-        elif pressed[pygame.K_UP]:
+        elif up:
             self.vel[1] = -self.movement_magnitude
-        elif pressed[pygame.K_DOWN]:
+        elif down:
             self.vel[1] = self.movement_magnitude
 
     def reset(self):
