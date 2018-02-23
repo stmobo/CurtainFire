@@ -7,7 +7,7 @@ import time
 import game_data
 import effects
 
-score_cutoff = 15
+score_cutoff = 10
 score_fields = [
     'name',
     'timestamp',

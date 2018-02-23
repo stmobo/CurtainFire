@@ -56,17 +56,24 @@ class HomingBurstWave(Wave):
 
 
 class FixedSpreadWave(Wave):
-    name = "Wavefront"
+    name = "Wavefronts"
     spread_angle = 137
-    angle_offset = 0
     speed = 200
 
     def __init__(self, wave_size):
-        Wave.__init__(self, wave_size)
-        self.n_layers = random.uniform(3, 7)
-        self.bullets_per_layer = int(wave_size / self.n_layers)
+        self.n_spawners = int(random.uniform(1, 4))
+        Wave.__init__(self, int(wave_size))
 
-    def update(self):
+        self.n_layers = int(random.uniform(2, 5))
+        self.bullets_per_layer = int(wave_size / self.n_layers)
+        self.starts = []
+        self.angle_offsets = []
+
+        for i in range(self.n_layers):
+            self.starts.append((int(random.uniform(200, 600)), 100))
+            self.angle_offsets.append(random.uniform(-15, 15))
+
+    def update_spawner(self, i):
         if self.n_bullets_spawned <= self.wave_size:
             current_layer = math.floor(self.n_bullets_spawned / self.bullets_per_layer)
 
@@ -75,7 +82,7 @@ class FixedSpreadWave(Wave):
             angle = np.radians(
                 (self.spread_angle * (layer_pos / self.bullets_per_layer))
                 - (self.spread_angle / 2)
-                + self.angle_offset
+                + self.angle_offsets[i]
             )
 
             # implicitly rotate to screen coordinates
@@ -83,7 +90,7 @@ class FixedSpreadWave(Wave):
             vel_y = np.cos(angle) * self.speed
 
             new_sprite = entities.ConstantPathBullet(
-                self.color, (400, 100), (vel_x, vel_y), (0, 0)
+                self.color, self.starts[i], (vel_x, vel_y), (0, 0)
             )
 
             self.bullets.add(new_sprite)
@@ -92,8 +99,11 @@ class FixedSpreadWave(Wave):
             new_layer = math.floor(self.n_bullets_spawned / self.bullets_per_layer)
 
             if current_layer != new_layer:
-                self.angle_offset = random.uniform(-15, 15)
+                self.angle_offsets[i] = random.uniform(-15, 15)
 
+    def update(self):
+        for i in range(len(self.starts)):
+            self.update_spawner(i)
 
 class TargetedSpreadWave(Wave):
     name = "Rubberhose"
@@ -499,6 +509,8 @@ class TrianglePatternWave(PatternedWave):
             generate_wave_color()
         )
 
+        self.spread_angle = 60
+
 
 class HorizontalPatternWave(PatternedWave):
     name = "Resonance"
@@ -545,12 +557,12 @@ wave_queue = []
 current_wave = None
 wave_completion_time = None
 
-starting_wave_size = 80
+starting_wave_size = 60
 base_wave_size = starting_wave_size
-wave_size_increase = 15
-wave_size_sigma = wave_size_increase / 2
+wave_size_increase = 5
+wave_size_sigma = wave_size_increase
 
-force_starting_wave = None
+force_starting_wave = FixedSpreadWave
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
