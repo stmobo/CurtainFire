@@ -1,8 +1,7 @@
 import pygame
 import numpy as np
 import math
-
-screen_dims = (800, 800)
+import game_data
 
 all_bullets = pygame.sprite.Group()
 all_beams = pygame.sprite.Group()
@@ -109,19 +108,22 @@ class Player(Entity):
         self.rot = self.start_rot
         self.rvel = self.racc = 0
 
+        self.dead = False
+
     def update(self, dt):
-        self.update_movement()
-        self.update_pos(dt)
+        if game_data.get_game_state() != 'title':
+            self.update_movement()
+            self.update_pos(dt)
 
         if self.pos[0] < 3:
             self.pos[0] = 3
-        elif self.pos[0] > screen_dims[0]-3:
-            self.pos[0] = screen_dims[0]-3
+        elif self.pos[0] > game_data.screen_dims[0]-3:
+            self.pos[0] = game_data.screen_dims[0]-3
 
         if self.pos[1] < 3:
             self.pos[1] = 3
-        elif self.pos[1] > screen_dims[1]-3:
-            self.pos[1] = screen_dims[1]-3
+        elif self.pos[1] > game_data.screen_dims[1]-3:
+            self.pos[1] = game_data.screen_dims[1]-3
 
         self.update_rect()
 
@@ -138,7 +140,7 @@ class Beam(Entity):
     def update(self, dt):
         self.update_pos(dt)
 
-        self.image = pygame.Surface(screen_dims, flags=pygame.SRCALPHA)
+        self.image = pygame.Surface(game_data.screen_dims, flags=pygame.SRCALPHA)
         self.image.fill((0, 0, 0, 0))
 
         pygame.draw.line(
@@ -170,18 +172,18 @@ class Ray(Beam):
                 endpt[1] = 0
                 endpt[0] = self.pos[0] + (-r * self.pos[1])
             else:
-                endpt[1] = screen_dims[1]
-                endpt[0] = self.pos[0] + (r * (screen_dims[1] - self.pos[1]))
+                endpt[1] = game_data.screen_dims[1]
+                endpt[0] = self.pos[0] + (r * (game_data.screen_dims[1] - self.pos[1]))
         else:
             r = disp_vec[1] / disp_vec[0]
             if disp_vec[0] < 0:
                 endpt[0] = 0
                 endpt[1] = self.pos[1] + (-r * self.pos[0])
             else:
-                endpt[0] = screen_dims[0]
-                endpt[1] = self.pos[1] + (r * (screen_dims[0] - self.pos[0]))
+                endpt[0] = game_data.screen_dims[0]
+                endpt[1] = self.pos[1] + (r * (game_data.screen_dims[0] - self.pos[0]))
 
-        self.image = pygame.Surface(screen_dims, flags=pygame.SRCALPHA)
+        self.image = pygame.Surface(game_data.screen_dims, flags=pygame.SRCALPHA)
         self.image.fill((0, 0, 0, 0))
 
         pygame.draw.line(

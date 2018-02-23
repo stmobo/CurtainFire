@@ -3,6 +3,7 @@ import numpy as np
 import math
 import random
 import entities
+import game_data
 
 def generate_wave_color():
     c = pygame.Color(255, 255, 255, 255)
@@ -171,8 +172,6 @@ class ClusterWave(Wave):
             ), dtype=np.int))
 
     def update(self):
-        global score
-
         if not self.initialized:
             self.initialized = True
             leader_color = (255, 255, 255, 255)
@@ -192,7 +191,7 @@ class ClusterWave(Wave):
 
                 self.bullets.add(new_sprite)
                 self.leaders.append(new_sprite)
-                score += 1
+                game_data.score += 1
                 self.n_bullets_spawned += 1
         else:
             for i, l, t in zip(range(self.n_clusters), self.leaders, self.targets):
@@ -551,44 +550,38 @@ base_wave_size = starting_wave_size
 wave_size_increase = 15
 wave_size_sigma = wave_size_increase / 2
 
-current_wave_size = 0
-current_wave_number = 0
-score = 0
-
 force_starting_wave = None
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
-    global current_wave_number, score, current_wave_size, force_starting_wave
+    global force_starting_wave
 
     wave_queue = random.sample(
         possible_wave_types, k=len(possible_wave_types)
     )
 
     base_wave_size = starting_wave_size
-    current_wave_number = 1
-    score = 0
-    current_wave_size = int(random.normalvariate(base_wave_size, wave_size_sigma))
+    game_data.current_wave_size = int(random.normalvariate(base_wave_size, wave_size_sigma))
 
     print("Starting waves..")
-    print("  Starting wave "+str(current_wave_number))
-    print("  Current wave size: "+str(current_wave_size))
+    print("  Starting wave "+str(game_data.current_wave_number))
+    print("  Current wave size: "+str(game_data.current_wave_size))
 
     if current_wave is not None:
         current_wave.end()
 
     if force_starting_wave is not None:
-        current_wave = force_starting_wave(current_wave_size)
+        current_wave = force_starting_wave(game_data.current_wave_size)
     else:
-        current_wave = wave_queue.pop()(current_wave_size)
+        current_wave = wave_queue.pop()(game_data.current_wave_size)
 
     wave_completion_time = None
 
 def next_wave():
     global current_wave, wave_completion_time, wave_queue
-    global base_wave_size, wave_size_increase, current_wave_number, current_wave_size
+    global base_wave_size, wave_size_increase
 
-    current_wave_number += 1
+    game_data.current_wave_number += 1
 
     if len(wave_queue) == 0:
         wave_queue = random.sample(
@@ -596,19 +589,19 @@ def next_wave():
         )
 
     base_wave_size += wave_size_increase
-    current_wave_size = int(random.normalvariate(base_wave_size, wave_size_sigma))
-    print("  Starting wave "+str(current_wave_number))
-    print("  Current wave size: "+str(current_wave_size))
-    print("  Current score: "+str(score))
+    game_data.current_wave_size = int(random.normalvariate(base_wave_size, wave_size_sigma))
+    print("  Starting wave "+str(game_data.current_wave_number))
+    print("  Current wave size: "+str(game_data.current_wave_size))
+    print("  Current score: "+str(game_data.score))
 
-    current_wave = wave_queue.pop()(current_wave_size)
+    current_wave = wave_queue.pop()(game_data.current_wave_size)
     wave_completion_time = None
 
 def update():
-    global current_wave, wave_completion_time, current_wave_size
+    global current_wave, wave_completion_time
 
     current_wave.update()
-    current_wave_size = current_wave.wave_size
+    game_data.current_wave_size = current_wave.wave_size
     if current_wave.wave_completed():
         current_wave.end()
 
