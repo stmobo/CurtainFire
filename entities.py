@@ -328,7 +328,8 @@ class HomingBullet(Bullet):
         homing_bullets.add(self)
 
     def update(self, dt):
-        self.accelerate_to(self.target.pos, self.target_acc)
+        if not self.target.dead and not (self.target == player and game_data.get_game_state() == 'respawn'):
+            self.accelerate_to(self.target.pos, self.target_acc)
 
         self.update_pos(dt)
         self.rotate_to_velocity()

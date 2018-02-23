@@ -39,7 +39,7 @@ while True:
         if event.type == pygame.QUIT:
             sys.exit()
         elif event.type == pygame.USEREVENT+1:
-            if game_data.get_game_state() == 'gameplay':
+            if game_data.get_game_state() == 'gameplay' or game_data.get_game_state() == 'respawn':
                 waves.update()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
@@ -171,13 +171,22 @@ while True:
 
     screen.blit(fps_display, (0, 0))
 
-    if game_data.get_game_state() == 'gameplay':
-        time_display = game_data.display_font.render(
+    if game_data.get_game_state() == 'gameplay' or game_data.get_game_state() == 'respawn':
+        main_time_display = game_data.display_font.render(
             "Time: {:.3f}".format(game_data.t - 3), True, (255, 255, 255)
         )
 
-        tw, th = time_display.get_size()
-        screen.blit(time_display, (400-(tw/2), 0))
+        tw, th = main_time_display.get_size()
+        screen.blit(main_time_display, (175-(tw/2), 0))
+
+
+        wave_time_display = game_data.display_font.render(
+            "Wave Time: {:.3f}".format(waves.current_wave.wave_timer),
+            True, (255, 255, 255)
+        )
+
+        tw, th = wave_time_display.get_size()
+        screen.blit(wave_time_display, (550-(tw/2), 0))
 
     hs_display = scores.render_high_scores()
     screen.blit(hs_display, (800, 0))

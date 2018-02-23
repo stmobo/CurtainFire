@@ -24,14 +24,18 @@ class Wave:
         self.wave_size = wave_size
         self.n_bullets_spawned = 0
 
+        self.wave_timer = base_wave_time
+
     def wave_completed(self):
         if len(self.bullets.sprites()) == 0 and self.n_bullets_spawned > 0:
+            return True
+        elif self.wave_timer <= 0:
             return True
         else:
             return False
 
     def update(self):
-        pass
+        self.wave_timer -= 0.025
 
     def end(self):
         pass
@@ -41,6 +45,8 @@ class HomingBurstWave(Wave):
     name = "Raindrops"
 
     def update(self):
+        Wave.update(self)
+
         if self.n_bullets_spawned <= self.wave_size:
             new_sprite = entities.HomingBullet(
                 self.color, (400, 100), entities.player, 100
@@ -102,6 +108,8 @@ class FixedSpreadWave(Wave):
                 self.angle_offsets[i] = random.uniform(-15, 15)
 
     def update(self):
+        Wave.update(self)
+
         for i in range(len(self.starts)):
             self.update_spawner(i)
 
@@ -130,6 +138,8 @@ class TargetedSpreadWave(Wave):
         self.start = np.array(random.choice(valid_starts), dtype=np.int)
 
     def update(self):
+        Wave.update(self)
+
         for i in range(self.bullets_per_tick):
             if self.n_bullets_spawned <= self.wave_size:
                 angle_offset = random.uniform(-20, 20)
@@ -182,6 +192,8 @@ class ClusterWave(Wave):
             ), dtype=np.int))
 
     def update(self):
+        Wave.update(self)
+
         if not self.initialized:
             self.initialized = True
             leader_color = (255, 255, 255, 255)
@@ -251,6 +263,8 @@ class GridLockWave(Wave):
         self.last_fire_cycle = -1
 
     def update(self):
+        Wave.update(self)
+
         self.t += 0.025
         fire_cycle = math.floor(self.t / self.bullet_spacing)
 
@@ -311,6 +325,8 @@ class HomingTracerWave(Wave):
                 self.n_bullets_spawned += 1
 
     def update(self):
+        Wave.update(self)
+
         self.t += 0.025
         if not self.initialized:
             self.initialized = True
@@ -369,6 +385,7 @@ class TrackingSpreadWave(Wave):
 
     sub_n1 = -1
     sub_n2 = -1
+    flash_timer = 0.25
 
     def __init__(self, wave_size):
         Wave.__init__(self, wave_size)
@@ -376,6 +393,13 @@ class TrackingSpreadWave(Wave):
         self.bullets_per_spread = wave_size / 9
 
         self.beam_group = pygame.sprite.Group()
+
+        self.tracking_beam_color = pygame.Color(
+            self.color.r,
+            self.color.g,
+            self.color.b,
+            128
+        )
 
     def update_tracking_beam(self, tracking_beam):
         for angle_offset in np.linspace(0, self.spread_angle, self.bullets_per_spread):
@@ -400,6 +424,8 @@ class TrackingSpreadWave(Wave):
                 self.n_bullets_spawned += 1
 
     def update(self):
+        Wave.update(self)
+
         self.t += 0.025
         if not self.initialized:
             self.initialized = True
@@ -418,12 +444,22 @@ class TrackingSpreadWave(Wave):
 
             self.bullets.add(self.leader_2)
 
-            self.tracking_beam_1 = entities.MovingTrackerRay(self.leader_1, entities.player, 1, self.color)
-            self.tracking_beam_2 = entities.MovingTrackerRay(self.leader_2, entities.player, 1, self.color)
+            self.tracking_beam_1 = entities.MovingTrackerRay(self.leader_1, entities.player, 1, self.tracking_beam_color)
+            self.tracking_beam_2 = entities.MovingTrackerRay(self.leader_2, entities.player, 1, self.tracking_beam_color)
         else:
             n = math.floor(self.t / self.fire_period)
 
+            if self.flash_timer > 0:
+                self.flash_timer -= 0.025
+
+                self.tracking_beam_1.color = (255, 255, 255, 255)
+                self.tracking_beam_2.color = (255, 255, 255, 255)
+            else:
+                self.tracking_beam_1.color = self.tracking_beam_color
+                self.tracking_beam_2.color = self.tracking_beam_color
+
             if n > self.last_n:
+                self.flash_timer = 0.15
                 self.last_n = n
 
                 if not self.leader_1.dead:
@@ -488,6 +524,8 @@ class PatternedWave(Wave):
             self.n_bullets_spawned += 1
 
     def update(self):
+        Wave.update(self)
+
         self.t += 0.025
         if self.n_bullets_spawned <= self.wave_size:
             current_layer = math.floor(self.t / self.layer_time)
@@ -557,23 +595,32 @@ wave_queue = []
 current_wave = None
 wave_completion_time = None
 
-starting_wave_size = 60
+starting_wave_time = 12
+base_wave_time = starting_wave_time
+wave_time_decrease = .5
+min_wave_time = 2
+
+starting_wave_size = 40
 base_wave_size = starting_wave_size
 wave_size_increase = 5
+
 wave_size_sigma = wave_size_increase
 
-force_starting_wave = HomingTracerWave
+force_starting_wave = HomingBurstWave
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
-    global force_starting_wave
+    global force_starting_wave, base_wave_time, starting_wave_time, wave_time_decrease
 
     wave_queue = random.sample(
         possible_wave_types, k=len(possible_wave_types)
     )
 
+    base_wave_time = starting_wave_time
     base_wave_size = starting_wave_size
-    game_data.current_wave_size = int(random.normalvariate(base_wave_size, wave_size_sigma))
+    game_data.current_wave_size = int(random.uniform(
+        base_wave_size - wave_size_increase, base_wave_size + wave_size_increase
+    ))
 
     print("Starting waves..")
     print("  Starting wave "+str(game_data.current_wave_number))
@@ -591,7 +638,7 @@ def reset():
 
 def next_wave():
     global current_wave, wave_completion_time, wave_queue
-    global base_wave_size, wave_size_increase
+    global base_wave_size, wave_size_increase, base_wave_time, wave_time_decrease
 
     game_data.current_wave_number += 1
 
@@ -601,7 +648,18 @@ def next_wave():
         )
 
     base_wave_size += wave_size_increase
-    game_data.current_wave_size = int(random.normalvariate(base_wave_size, wave_size_sigma))
+    game_data.current_wave_size = int(random.uniform(
+        base_wave_size - wave_size_increase, base_wave_size + wave_size_increase
+    ))
+
+    base_wave_time -= wave_time_decrease
+    if base_wave_time < min_wave_time:
+        base_wave_time = min_wave_time
+
+    print("  Spawned {} out of {} bullets in last wave".format(
+        current_wave.n_bullets_spawned, current_wave.wave_size
+    ))
+
     print("  Starting wave "+str(game_data.current_wave_number))
     print("  Current wave size: "+str(game_data.current_wave_size))
     print("  Current score: "+str(game_data.score))

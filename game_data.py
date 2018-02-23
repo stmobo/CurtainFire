@@ -30,11 +30,14 @@ respawn_timer = 0
 
 def reset():
     global t, score, current_wave_number, game_ending, game_running
-    global game_end_time
+    global game_end_time, lives, respawn_timer
 
     t = 0
     score = 0
     current_wave_number = 0
+    lives = 3
+    respawn_timer = 0
+
     game_running = True
     game_end_time = False
     game_ending = False
