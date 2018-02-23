@@ -3,24 +3,27 @@ import numpy as np
 import math
 import sys
 import random
+
+pygame.init()
+
 import entities
 import effects
 import waves
 import game_data
+import scores
 
-pygame.init()
 
-screen = pygame.display.set_mode(game_data.screen_dims)
+actual_dims = (
+    game_data.screen_dims[0] + game_data.hs_screen_width,
+    game_data.screen_dims[1]
+)
+
+screen = pygame.display.set_mode(actual_dims)
 game_data.screen = screen
 
 clk = pygame.time.Clock()
 
 pygame.time.set_timer(pygame.USEREVENT+1, 25)
-
-title_font = pygame.font.Font("aldo_the_apache/AldotheApache.ttf", 150)
-display_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 50)
-prompt_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 75)
-fps_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 25)
 
 while True:
     dt = clk.tick(60) / 1000
@@ -44,6 +47,11 @@ while True:
                 entities.player.reset()
                 waves.reset()
                 game_data.reset()
+            elif game_data.get_game_state() == 'hs-name-input':
+                scores.name_input_screen.keypress(event)
+
+    if game_data.get_game_state() != 'hs-name-input':
+        pygame.key.set_repeat()
 
     # Clear the screen.
     screen.fill((0, 0, 0))
@@ -64,7 +72,7 @@ while True:
             sprite.kill()
 
             if game_data.get_game_state() == 'gameplay':
-                game_data.score += 1
+                game_data.change_score(1)
 
     # Blit bullets and the player below everything else.
     if hasattr(entities.player, 'rect') and not entities.player.dead:
@@ -77,7 +85,7 @@ while True:
 
     if game_data.get_game_state() == 'start-countdown':
         # Countdown to game start.
-        countdown_display = prompt_font.render(
+        countdown_display = game_data.prompt_font.render(
             "{:.3f}".format(3 - game_data.t), True, (255, 0, 0)
         )
         w, h = countdown_display.get_size()
@@ -88,7 +96,7 @@ while True:
         )
     elif game_data.get_game_state() == 'title':
         # Starting key prompt and title
-        title_display = title_font.render(
+        title_display = game_data.title_font.render(
             "CurtainFire", True, (0, 255, 0)
         )
 
@@ -100,7 +108,7 @@ while True:
         )
 
         if pygame.time.get_ticks() % 1000 > 500:
-            prompt_display = prompt_font.render(
+            prompt_display = game_data.prompt_font.render(
                 "Press SPACE", True, (255, 255, 255)
             )
 
@@ -110,10 +118,12 @@ while True:
                 prompt_display,
                 (400 - (w/2), 400 - (h/2))
             )
-
+    elif game_data.get_game_state() == 'hs-name-input':
+        scores.name_input_screen.update(dt)
+        screen.blit(scores.name_input_screen.screen, (0, 0))
 
     # Display interesting info at the bottom of the screen.
-    score_display = display_font.render(
+    score_display = game_data.display_font.render(
         "Wave: {:02n} Score: {:05n} Wave Size: {:04n}".format(
             game_data.current_wave_number, game_data.score, game_data.current_wave_size+1
         ), True, (255, 255, 255)
@@ -126,14 +136,14 @@ while True:
         pattern_display = None
 
         if len(waves.wave_queue) >= 1:
-            pattern_display = fps_font.render(
+            pattern_display = game_data.fps_font.render(
                 "Pattern: {}    Next Pattern: {}".format(
                     waves.current_wave.name,
                     waves.wave_queue[-1].name
                 ), True, (255, 255, 255)
             )
         else:
-            pattern_display = fps_font.render(
+            pattern_display = game_data.fps_font.render(
                 "Pattern: {}".format(
                     waves.current_wave.name
                 ), True, (255, 255, 255)
@@ -142,19 +152,33 @@ while True:
         pw, ph = pattern_display.get_size()
         screen.blit(pattern_display, (400 - (pw/2), 800-sh-ph))
 
-    fps_display = fps_font.render(
+    fps_display = game_data.fps_font.render(
         "{:02n}".format(clk.get_fps()), True, (255, 255, 255)
     )
 
     screen.blit(fps_display, (0, 0))
 
     if game_data.get_game_state() == 'gameplay':
-        time_display = display_font.render(
+        time_display = game_data.display_font.render(
             "Time: {:.3f}".format(game_data.t - 3), True, (255, 255, 255)
         )
 
         tw, th = time_display.get_size()
         screen.blit(time_display, (400-(tw/2), 0))
+
+    hs_display = scores.render_high_scores()
+    screen.blit(hs_display, (800, 0))
+
+    if scores.is_high_score() and game_data.get_game_state() == 'gameplay' and len(scores.saved_scores) != 0:
+        hs_display = effects.render_striped_text(
+            "High Score", game_data.display_font,
+            (255, 255, 255, 255), (255, 0, 0, 255), 2, 150
+        )
+
+        w, h = hs_display.get_size()
+        screen.blit(
+            hs_display, (800 + (game_data.hs_screen_width / 2) - (w / 2), 790 - h)
+        )
 
     pygame.display.flip()
 
@@ -173,3 +197,7 @@ while True:
             effects.ExplosionEffect(entities.player.pos, 0, .5, 1)
             entities.player.kill()
             game_data.game_over()
+
+            if scores.is_high_score():
+                scores.name_input_screen.reset()
+                game_data.active_subscreen = 'hs-name-input'

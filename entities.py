@@ -110,6 +110,10 @@ class Player(Entity):
 
         self.dead = False
 
+    def kill(self):
+        Entity.kill(self)
+        self.pos = np.zeros(2)
+
     def update(self, dt):
         if game_data.get_game_state() != 'title':
             self.update_movement()

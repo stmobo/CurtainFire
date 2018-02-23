@@ -191,7 +191,7 @@ class ClusterWave(Wave):
 
                 self.bullets.add(new_sprite)
                 self.leaders.append(new_sprite)
-                game_data.score += 1
+                game_data.change_score(1)
                 self.n_bullets_spawned += 1
         else:
             for i, l, t in zip(range(self.n_clusters), self.leaders, self.targets):

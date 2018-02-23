@@ -1,3 +1,12 @@
+import pygame
+
+title_font = pygame.font.Font("aldo_the_apache/AldotheApache.ttf", 150)
+display_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 50)
+prompt_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 75)
+fps_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 25)
+input_font = pygame.font.Font("linear_beam/Linebeam.ttf", 50)
+high_score_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 22)
+
 screen_dims = (800, 800)
 game_running = False
 game_ending = False
@@ -9,6 +18,10 @@ current_wave_number = 0
 score = 0
 
 screen = None
+
+active_subscreen = None
+
+hs_screen_width = 350
 
 def reset():
     global t, score, current_wave_number, game_ending, game_running
@@ -25,14 +38,22 @@ def game_over():
     global game_ending, game_end_time, t, game_running
 
     game_running = False
+    game_ending = True
+    game_end_time = t
 
 def get_game_state():
-    global game_running, t
+    global game_running, t, active_subscreen
 
-    if not game_running:
+    if active_subscreen is not None:
+        return active_subscreen
+    elif not game_running:
         return 'title'
     else:
         if t < 3:
             return 'start-countdown'
         else:
             return 'gameplay'
+
+def change_score(delta):
+    global score
+    score += delta
