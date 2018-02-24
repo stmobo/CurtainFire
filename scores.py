@@ -13,7 +13,8 @@ score_fields = [
     'timestamp',
     'score',
     'time',
-    'waves'
+    'waves',
+    'difficulty'
 ]
 
 def read_scores(f='./scores.csv'):
@@ -27,7 +28,8 @@ def read_scores(f='./scores.csv'):
                     'timestamp': row['timestamp'],
                     'score': int(row['score']),
                     'time': float(row['time']),
-                    'waves': int(row['waves'])
+                    'waves': int(row['waves']),
+                    'difficulty': int(row.get('difficulty', 1))
                 } for row in reader],
                 key=lambda v: v['score'],
                 reverse=True
@@ -60,7 +62,8 @@ def current_score_object(name):
         'timestamp': time.ctime(),
         'score': game_data.score,
         'time': game_data.t,
-        'waves': game_data.current_wave_number
+        'waves': game_data.current_wave_number,
+        'difficulty': game_data.difficulty
     }
 
 def save_score(name='Unknown'):
@@ -72,7 +75,7 @@ def save_score(name='Unknown'):
 
 def is_high_score():
     global saved_scores
-    if len(saved_scores) == 0:
+    if len(saved_scores) < score_cutoff:
         return True
 
     threshold = min([s['score'] for s in saved_scores[:score_cutoff]])
@@ -111,7 +114,7 @@ def render_high_scores():
         )
     else:
         disp2 = game_data.high_score_font.render(
-            "Score - Time - Waves", True, (255, 255, 255)
+            "Score - Time - Waves - Difficulty", True, (255, 255, 255)
         )
 
     w, h = disp2.get_size()
@@ -131,14 +134,20 @@ def render_high_scores():
 
             listing_1 = game_data.high_score_font.render(
                 "{}. {}".format(
-                    i+1, s['name'], s['score'], s['time'], s['waves']
+                    i+1, s['name']
                 ), True, (255, 255, 255)
             )
             surface.blit(listing_1, (start_w, current_h))
 
+            d_name = "Normal"
+            if s['difficulty'] == 0:
+                d_name = 'Easy'
+            elif s['difficulty'] == 2:
+                d_name = 'Hard'
+
             listing_2 = game_data.high_score_font.render(
-                "{:05n} - {:.3f} - {:02n}".format(
-                    s['score'], s['time'], s['waves']
+                "{:05n} - {:.3f} - {:02n} - {}".format(
+                    s['score'], s['time'], s['waves'], d_name
                 ), True, (255, 255, 255)
             )
             w2, h2 = listing_2.get_size()
