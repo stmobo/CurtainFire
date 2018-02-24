@@ -34,8 +34,8 @@ class Wave:
         else:
             return False
 
-    def update(self):
-        self.wave_timer -= 0.025
+    def update(self, dt):
+        self.wave_timer -= dt
 
     def end(self):
         pass
@@ -44,8 +44,8 @@ class Wave:
 class HomingBurstWave(Wave):
     name = "Raindrops"
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
 
         if self.n_bullets_spawned <= self.wave_size:
             new_sprite = entities.HomingBullet(
@@ -107,8 +107,8 @@ class FixedSpreadWave(Wave):
             if current_layer != new_layer:
                 self.angle_offsets[i] = random.uniform(-15, 15)
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
 
         for i in range(len(self.starts)):
             self.update_spawner(i)
@@ -137,8 +137,8 @@ class TargetedSpreadWave(Wave):
 
         self.start = np.array(random.choice(valid_starts), dtype=np.int)
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
 
         for i in range(self.bullets_per_tick):
             if self.n_bullets_spawned <= self.wave_size:
@@ -191,8 +191,8 @@ class ClusterWave(Wave):
                 random.uniform(50, 750)
             ), dtype=np.int))
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
 
         if not self.initialized:
             self.initialized = True
@@ -262,10 +262,10 @@ class GridLockWave(Wave):
         self.bullet_spacing = 800 / self.speed / self.n_per_line / 2
         self.last_fire_cycle = -1
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
+        self.t += dt
 
-        self.t += 0.025
         fire_cycle = math.floor(self.t / self.bullet_spacing)
 
         if fire_cycle > self.last_fire_cycle:
@@ -324,10 +324,10 @@ class HomingTracerWave(Wave):
                 self.bullets.add(new_sprite)
                 self.n_bullets_spawned += 1
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
+        self.t += dt
 
-        self.t += 0.025
         if not self.initialized:
             self.initialized = True
 
@@ -373,7 +373,7 @@ class HomingTracerWave(Wave):
 
 
 class TrackingSpreadWave(Wave):
-    name = "Sharpshooter"
+    name = "Tracker"
     fire_period = 1
     bullet_speed = 200
     leader_speed = 150
@@ -395,18 +395,18 @@ class TrackingSpreadWave(Wave):
         self.beam_group = pygame.sprite.Group()
 
         self.tracking_beam_color = pygame.Color(
-            self.color.r,
-            self.color.g,
-            self.color.b,
-            128
+            int(self.color.r / 3),
+            int(self.color.g / 3),
+            int(self.color.b / 3),
         )
 
     def update_tracking_beam(self, tracking_beam):
         for angle_offset in np.linspace(0, self.spread_angle, self.bullets_per_spread):
             if self.n_bullets_spawned <= self.wave_size:
+                target_vector = entities.player.pos - tracking_beam.pos
                 base_angle = np.arctan2(
-                    -tracking_beam.target_vector[0],
-                    -tracking_beam.target_vector[1]
+                    -target_vector[0],
+                    -target_vector[1]
                 )
 
                 r_off = np.radians(angle_offset) - (np.radians(self.spread_angle) / 2)
@@ -423,10 +423,10 @@ class TrackingSpreadWave(Wave):
                 self.bullets.add(new_sprite)
                 self.n_bullets_spawned += 1
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
 
-        self.t += 0.025
+        self.t += dt
         if not self.initialized:
             self.initialized = True
 
@@ -450,7 +450,7 @@ class TrackingSpreadWave(Wave):
             n = math.floor(self.t / self.fire_period)
 
             if self.flash_timer > 0:
-                self.flash_timer -= 0.025
+                self.flash_timer -= dt
 
                 self.tracking_beam_1.color = (255, 255, 255, 255)
                 self.tracking_beam_2.color = (255, 255, 255, 255)
@@ -523,10 +523,10 @@ class PatternedWave(Wave):
             self.bullets.add(new_sprite)
             self.n_bullets_spawned += 1
 
-    def update(self):
-        Wave.update(self)
+    def update(self, dt):
+        Wave.update(self, dt)
+        self.t += dt
 
-        self.t += 0.025
         if self.n_bullets_spawned <= self.wave_size:
             current_layer = math.floor(self.t / self.layer_time)
 
@@ -578,6 +578,163 @@ class VerticalPatternWave(PatternedWave):
         self.spread_angle = 180
 
 
+class BurstFireWave(Wave):
+    name = "Turrets"
+
+    # subtype 0 defaults
+    beginning_cone_angle = 90
+    end_cone_angle = 30
+    lock_pause_time = 0.15
+    bullet_speed = 300
+
+    initial_track_time = 1  # extra time added to first burst
+
+    initialized = False
+    stopped = False
+    sources = []
+    firing_angles = []
+    t = -initial_track_time
+    n = 1
+
+    def __init__(self, wave_size):
+        Wave.__init__(self, wave_size)
+
+        self.n_sources = random.randint(1, 3)
+        self.bursts_per_source = random.randint(2, 4)
+        self.lock_time = random.uniform(0.4, 0.75)
+
+        subtype = random.randint(0, 2)
+
+        if subtype == 1:
+            # Tight (15 degree) spread, fast bullets and firing, more bursts
+            self.end_cone_angle = 2.5
+            self.bullet_speed = 650
+            self.bursts_per_source = random.randint(5, 9)
+            self.lock_time = random.uniform(0.2, 0.5)
+            self.lock_pause_time = 0.05
+        elif subtype == 2:
+            # Wide (90 degree) spread, fast convergence, slow bullets
+            self.end_cone_angle = 45
+            self.lock_time = random.uniform(0.2, 0.5)
+            self.bullet_speed = 150
+
+        cycles_per_burst = int(self.lock_pause_time / 0.025)
+        n_cycles = int(self.n_sources * self.bursts_per_source * cycles_per_burst)
+
+        self.bullets_per_cycle = math.ceil(wave_size / n_cycles)
+        self.wave_size = self.bullets_per_cycle * n_cycles
+
+        self.wave_timer = (self.lock_time + self.lock_pause_time) * self.n_sources * self.bursts_per_source
+        self.wave_timer += self.initial_track_time
+        self.tracking_beam_color = pygame.Color(
+            int(self.color.r / 3),
+            int(self.color.g / 3),
+            int(self.color.b / 3)
+        )
+
+    def add_source(self):
+        pos = np.array((
+            random.randint(30, 770),
+            random.randint(30, 770),
+        ))
+
+        m = entities.MarkerBullet(self.color, pos)
+        r1 = entities.Ray(pos, np.zeros(2), 1, self.tracking_beam_color)
+        r2 = entities.Ray(pos, np.zeros(2), 1, self.tracking_beam_color)
+
+        self.bullets.add(m)
+        self.firing_angles.append(0)
+
+        self.sources.append((m, r1, r2))
+
+    def angle_towards_target(self):
+        for i, s in enumerate(self.sources):
+            m, r1, r2 = s
+
+            disp_vec = entities.player.pos - m.pos
+            base_angle = np.arctan2(
+                -disp_vec[0],
+                -disp_vec[1],
+            )
+
+            self.firing_angles[i] = base_angle
+
+            cone_angle_adj = (self.beginning_cone_angle - self.end_cone_angle) * ((self.lock_time - self.t) / self.lock_time)
+            cone_angle_adj += self.end_cone_angle
+
+            r1.end = m.pos+np.array((
+                -np.sin(base_angle + np.radians(cone_angle_adj)),
+                -np.cos(base_angle + np.radians(cone_angle_adj)),
+            ))
+
+            r2.end = m.pos+np.array((
+                -np.sin(base_angle - np.radians(cone_angle_adj)),
+                -np.cos(base_angle - np.radians(cone_angle_adj)),
+            ))
+
+    def fire_towards_target(self):
+        for base_angle, src in zip(self.firing_angles, self.sources):
+            m, r1, r2 = src
+
+            for i in range(self.bullets_per_cycle):
+                angle_adj = random.uniform(-self.end_cone_angle, self.end_cone_angle)
+                angle = base_angle + np.radians(angle_adj)
+
+                vel = np.array((
+                    -np.sin(angle),
+                    -np.cos(angle),
+                )) * self.bullet_speed * random.uniform(0.85, 1.15)
+
+                new_sprite = entities.ConstantPathBullet(
+                    self.color, m.pos, vel, (0, 0)
+                )
+                self.bullets.add(new_sprite)
+                self.n_bullets_spawned += 1
+
+
+    def end(self):
+        for m, r1, r2 in self.sources:
+            m.kill()
+            r1.kill()
+            r2.kill()
+
+    def update(self, dt):
+        Wave.update(self, dt)
+        self.t += dt
+
+        if self.stopped:
+            return
+
+        if not self.initialized:
+            self.initialized = True
+            for i in range(self.n_sources):
+                self.add_source()
+
+        if self.t < 0:
+            for m, r1, r2 in self.sources:
+                m.set_color((128, 128, 128))
+                r1.color = (0, 0, 0)
+                r2.color = (0, 0, 0)
+        elif self.t <= self.lock_time:
+            self.angle_towards_target()
+            for m, r1, r2 in self.sources:
+                m.set_color(self.color)
+                r1.color = self.tracking_beam_color
+                r2.color = self.tracking_beam_color
+        elif self.t < self.lock_time + self.lock_pause_time:
+            self.fire_towards_target()
+            for m, r1, r2 in self.sources:
+                r1.color = (255, 255, 255)
+                r2.color = (255, 255, 255)
+        elif self.t > self.lock_time + self.lock_pause_time:
+            self.t = 0
+            self.n += 1
+
+            if self.n >= self.bursts_per_source:
+                self.stopped = True
+                self.end()
+
+
 possible_wave_types = [
     FixedSpreadWave,
     HomingBurstWave,
@@ -588,7 +745,8 @@ possible_wave_types = [
     GridLockWave,
     ClusterWave,
     TrackingSpreadWave,
-    HomingTracerWave
+    HomingTracerWave,
+    BurstFireWave
 ]
 
 wave_queue = []
@@ -600,13 +758,13 @@ base_wave_time = starting_wave_time
 wave_time_decrease = .5
 min_wave_time = 2
 
-starting_wave_size = 40
+starting_wave_size = 60
 base_wave_size = starting_wave_size
 wave_size_increase = 5
 
 wave_size_sigma = wave_size_increase
 
-force_starting_wave = HomingBurstWave
+force_starting_wave = BurstFireWave
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
@@ -667,10 +825,10 @@ def next_wave():
     current_wave = wave_queue.pop()(game_data.current_wave_size)
     wave_completion_time = None
 
-def update():
+def update(dt):
     global current_wave, wave_completion_time
 
-    current_wave.update()
+    current_wave.update(dt)
     game_data.current_wave_size = current_wave.wave_size
     if current_wave.wave_completed():
         current_wave.end()

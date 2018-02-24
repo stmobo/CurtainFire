@@ -59,8 +59,8 @@ class Entity(pygame.sprite.Sprite):
 
     def update_rect(self):
         self.rect = self.image.get_rect()
-        self.rect.x = self.pos[0]
-        self.rect.y = self.pos[1]
+        self.rect.centerx = self.pos[0]
+        self.rect.centery = self.pos[1]
 
     def update(self, dt):
         self.update_pos(dt)
@@ -152,59 +152,46 @@ class Beam(Entity):
     def update(self, dt):
         self.update_pos(dt)
 
-        self.image = pygame.Surface(game_data.screen_dims, flags=pygame.SRCALPHA)
-        self.image.fill((0, 0, 0, 0))
-
         pygame.draw.line(
-            self.image, self.color, self.pos, self.end, self.width
+            game_data.screen, self.color, self.pos, self.end, self.width
         )
 
-        self.rect = self.image.get_rect()
-        self.rect.x = 0
-        self.rect.y = 0
+        self.rect = pygame.Rect((0, 0), game_data.screen_dims)
 
 
 class Ray(Beam):
     def __init__(self, start, end, width, color):
+        global last_ray_update_status
         Beam.__init__(self, start, end, width, color)
-        self.target_vector = np.array((0, 1))
+
+        self.rect = pygame.Rect((0, 0), game_data.screen_dims)
 
     def update(self, dt):
         self.update_pos(dt)
 
-        disp_vec = self.end.astype(np.float) - self.pos.astype(np.float)
-        disp_vec = disp_vec / np.sqrt(np.sum(disp_vec ** 2))
-        self.target_vector = disp_vec
+        target_vector = self.end - self.pos
 
-        endpt = np.zeros(2)
-
-        if abs(disp_vec[0]) < abs(disp_vec[1]):
-            r = disp_vec[0] / disp_vec[1]
-            if disp_vec[1] < 0:
+        endpt = [0, 0]
+        if abs(target_vector[0]) < abs(target_vector[1]):
+            r = target_vector[0] / target_vector[1]
+            if target_vector[1] < 0:
                 endpt[1] = 0
                 endpt[0] = self.pos[0] + (-r * self.pos[1])
             else:
                 endpt[1] = game_data.screen_dims[1]
                 endpt[0] = self.pos[0] + (r * (game_data.screen_dims[1] - self.pos[1]))
         else:
-            r = disp_vec[1] / disp_vec[0]
-            if disp_vec[0] < 0:
+            r = target_vector[1] / target_vector[0]
+            if target_vector[0] < 0:
                 endpt[0] = 0
                 endpt[1] = self.pos[1] + (-r * self.pos[0])
             else:
                 endpt[0] = game_data.screen_dims[0]
                 endpt[1] = self.pos[1] + (r * (game_data.screen_dims[0] - self.pos[0]))
 
-        self.image = pygame.Surface(game_data.screen_dims, flags=pygame.SRCALPHA)
-        self.image.fill((0, 0, 0, 0))
-
         pygame.draw.line(
-            self.image, self.color, self.pos, endpt, self.width
+            game_data.screen, self.color, self.pos, endpt, self.width
         )
-
-        self.rect = self.image.get_rect()
-        self.rect.x = 0
-        self.rect.y = 0
 
 
 class TrackingRay(Ray):
@@ -271,6 +258,24 @@ class ConstantPathBullet(Bullet):
         self.update_rect()
 
 
+class MarkerBullet(ConstantPathBullet):
+    def __init__(self, color, pos):
+        ConstantPathBullet.__init__(self, color, pos, np.zeros(2), np.zeros(2))
+        self.set_color(color)
+
+        self.image = self.base_image
+        self.rect = self.image.get_rect()
+
+    def set_color(self, color):
+        self.color = color
+        self.base_image = pygame.Surface((20, 20), flags=pygame.SRCALPHA)
+        self.base_image.fill((0, 0, 0, 0))
+        pygame.draw.circle(
+            self.base_image, color,
+            (10, 10), 10
+        )
+
+
 class TracerBullet(Bullet):
     def __init__(self, c1, c2, pos, vel, acc):
         Bullet.__init__(self, c1, pos, 0)
@@ -334,5 +339,53 @@ class HomingBullet(Bullet):
         self.update_pos(dt)
         self.rotate_to_velocity()
         self.update_rect()
+
+
+class SegmentedPathBullet(Bullet):
+    def __init__(self, color, pos, segment_len, pause_time, update_trajectory_fn=None):
+        Bullet.__init__(self, color, pos, 0)
+
+        self.base_image = pygame.Surface((20, 10), flags=pygame.SRCALPHA)
+        self.base_image.fill((0, 0, 0, 0))
+        pygame.draw.polygon(
+            self.base_image, self.color,
+            [(0, 5), (10, 0), (20, 5), (10, 10)]
+        )
+
+        self.image = self.base_image
+        self.rect = self.image.get_rect()
+
+        self.pause_time = pause_time
+        self.segment_len = segment_len
+
+        self.cur_pause_tm = pause_time
+        self.cur_seg_len = segment_len
+
+        self.update_trajectory = update_trajectory_fn
+
+    def update(self, dt):
+        if self.cur_seg_len > 0:
+            old_acc = np.copy(self.acc)
+            old_vel = np.copy(self.vel)
+            old_pos = np.copy(self.pos)
+
+            self.update_pos(dt)
+            self.rotate_to_velocity()
+            self.update_rect()
+
+            dist = np.sqrt(np.sum((old_pos - self.pos)**2))
+            self.cur_seg_len -= dist
+
+            if self.cur_seg_len < 0 and self.update_trajectory is not None:
+                self.cur_pause_tm = self.pause_time
+                self.update_trajectory(self, old_pos, old_vel, old_acc)
+        elif self.cur_pause_tm > 0:
+            self.cur_pause_tm -= dt
+
+            if self.cur_pause_tm < 0:
+                self.cur_seg_len = self.segment_len
+        else:
+            self.cur_seg_len = self.segment_len
+
 
 player = Player((400, 400), 0)

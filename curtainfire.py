@@ -12,6 +12,11 @@ import waves
 import game_data
 import scores
 
+profiler = None
+
+if game_data.profiler_enabled:
+    import cProfile
+    profiler = cProfile.Profile()
 
 actual_dims = (
     game_data.screen_dims[0] + game_data.hs_screen_width,
@@ -26,7 +31,12 @@ clk = pygame.time.Clock()
 pygame.time.set_timer(pygame.USEREVENT+1, 25)
 
 while True:
-    dt = clk.tick(60) / 1000
+    actual_dt = clk.tick(60) / 1000
+
+    dt = actual_dt * game_data.time_dilation
+
+    if game_data.profiler_enabled:
+        profiler.enable()
 
     if game_data.game_running:
         game_data.t += dt
@@ -36,15 +46,16 @@ while True:
             game_data.respawn_timer -= dt
 
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+            if game_data.profiler_enabled:
+                profiler.create_stats()
+                profiler.dump_stats('./stats.profile')
+
             sys.exit()
         elif event.type == pygame.USEREVENT+1:
             if game_data.get_game_state() == 'gameplay' or game_data.get_game_state() == 'respawn':
-                waves.update()
+                waves.update(dt)
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                sys.exit()
-
             if game_data.get_game_state() == 'title' and event.key == pygame.K_SPACE:
                 # Start a new game.
                 entities.all_bullets.empty()
@@ -66,9 +77,9 @@ while True:
         entities.player.reset()
 
     # Normal game flow-- update bullets and check for invalid positions.
-    entities.player.update(dt)
+    game_data.update_time_dilation(actual_dt)
+    entities.player.update(actual_dt)
     entities.all_bullets.update(dt)
-    entities.all_beams.update(dt)
 
     for sprite in entities.all_bullets.sprites():
         if (
@@ -92,8 +103,10 @@ while True:
 
         screen.blit(entities.player.image, entities.player.rect)
 
+    # updating beams draws them
+    entities.all_beams.update(dt)
+
     entities.all_bullets.draw(screen)
-    entities.all_beams.draw(screen)
     effects.all_effects.draw(screen)
 
     if game_data.get_game_state() == 'start-countdown':
@@ -222,7 +235,34 @@ while True:
         )
         screen.blit(c, (815+h+65, 740-h))
 
-    pygame.display.flip()
+        # Render time dilation constant
+        td = game_data.fps_font.render(
+            "Time Dilation: {:.2f}".format(game_data.time_dilation), True,
+            (255, 255, 255, 255)
+        )
+
+        w, h = td.get_size()
+        screen.blit(td, (
+            800 + (game_data.hs_screen_width / 2) - (w / 2), 640 - h
+        ))
+
+        # Render time dilation usage bar
+        max_td_bar_size = game_data.hs_screen_width - 40
+        cur_td_bar_size = (
+            max_td_bar_size
+            * game_data.time_dilation_usage
+            / game_data.time_dilation_max
+        )
+
+        bar_bg = pygame.Rect((820, 650), (max_td_bar_size, 20))
+        bar_fg = pygame.Rect((820, 650), (cur_td_bar_size, 20))
+
+        pygame.draw.rect(screen, (192, 192, 192), bar_bg)
+
+        if game_data.time_dilation_must_recharge:
+            pygame.draw.rect(screen, (255, 0, 0), bar_fg)
+        else:
+            pygame.draw.rect(screen, (0, 0, 255), bar_fg)
 
     if game_data.get_game_state() == 'gameplay':
         collision_check_list = pygame.sprite.spritecollide(entities.player, entities.all_bullets, False)
@@ -248,3 +288,8 @@ while True:
                 if scores.is_high_score():
                     scores.name_input_screen.reset()
                     game_data.active_subscreen = 'hs-name-input'
+
+    if game_data.profiler_enabled:
+        profiler.disable()
+
+    pygame.display.flip()

@@ -8,6 +8,8 @@ input_font = pygame.font.Font("linear_beam/Linebeam.ttf", 50)
 high_score_font = pygame.font.Font("open_24_display/Open 24 Display St.ttf", 22)
 
 screen_dims = (800, 800)
+profiler_enabled = False
+
 game_running = False
 game_ending = False
 t = 0
@@ -24,6 +26,15 @@ active_subscreen = None
 hs_screen_width = 350
 
 lives = 3
+
+time_dilation = 1
+low_speed = 0.35
+
+_td_lo_to_hi_speed = (low_speed - 1) / .5
+
+time_dilation_max = 5
+time_dilation_usage = time_dilation_max
+time_dilation_must_recharge = False
 
 respawn_length = 4.5
 respawn_timer = 0
@@ -67,3 +78,35 @@ def get_game_state():
 def change_score(delta):
     global score
     score += delta
+
+def update_time_dilation(actual_dt):
+    global time_dilation, low_speed, _td_lo_to_hi_speed, time_dilation_usage
+    global time_dilation_must_recharge
+
+    pressed = pygame.key.get_pressed()
+
+    if (
+        (get_game_state() == 'gameplay' or get_game_state() == 'respawn')
+        and pressed[pygame.K_SPACE]
+        and not time_dilation_must_recharge and time_dilation_usage >= 0
+    ):
+        time_dilation_usage -= actual_dt
+
+        if time_dilation_usage < 0:
+            time_dilation_must_recharge = True
+
+        # interpolate to low time dilation:
+        time_dilation += _td_lo_to_hi_speed * actual_dt
+        if time_dilation < low_speed:
+            time_dilation = low_speed
+    else:
+        time_dilation_usage += actual_dt * 0.5
+
+        if time_dilation_usage > time_dilation_max:
+            time_dilation_must_recharge = False
+            time_dilation_usage = time_dilation_max
+
+        # interpolate to normal speed
+        time_dilation -= _td_lo_to_hi_speed * actual_dt
+        if time_dilation > 1:
+            time_dilation = 1
