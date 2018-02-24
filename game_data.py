@@ -12,6 +12,7 @@ profiler_enabled = False
 
 game_running = False
 game_ending = False
+game_paused = False
 t = 0
 game_end_time = 0
 
@@ -20,7 +21,6 @@ current_wave_number = 0
 score = 0
 
 screen = None
-
 active_subscreen = None
 
 hs_screen_width = 350
@@ -28,16 +28,19 @@ hs_screen_width = 350
 lives = 3
 
 time_dilation = 1
-low_speed = 0.35
+low_speed = 0.40
 
 _td_lo_to_hi_speed = (low_speed - 1) / .5
 
-time_dilation_max = 2.5
+time_dilation_max = 3
 time_dilation_usage = time_dilation_max
 time_dilation_must_recharge = False
 
 respawn_length = 4.5
 respawn_timer = 0
+
+# 0 = easy, 1 = normal, 2 = hard
+difficulty = 1
 
 def reset():
     global t, score, current_wave_number, game_ending, game_running
@@ -60,11 +63,17 @@ def game_over():
     game_ending = True
     game_end_time = t
 
+def toggle_pause():
+    global game_paused
+    game_paused = not game_paused
+
 def get_game_state():
-    global game_running, t, respawn_timer, active_subscreen
+    global game_running, t, respawn_timer, active_subscreen, game_paused
 
     if active_subscreen is not None:
         return active_subscreen
+    elif game_paused:
+        return 'paused'
     elif not game_running:
         return 'title'
     else:
@@ -100,7 +109,7 @@ def update_time_dilation(actual_dt):
         if time_dilation < low_speed:
             time_dilation = low_speed
     else:
-        time_dilation_usage += actual_dt * 0.5
+        time_dilation_usage += actual_dt * 0.3
 
         if time_dilation_usage > time_dilation_max:
             time_dilation_must_recharge = False

@@ -56,12 +56,24 @@ while True:
             if game_data.get_game_state() == 'gameplay' or game_data.get_game_state() == 'respawn':
                 waves.update(dt)
         elif event.type == pygame.KEYDOWN:
-            if game_data.get_game_state() == 'title' and event.key == pygame.K_SPACE:
-                # Start a new game.
-                entities.all_bullets.empty()
-                entities.player.reset()
-                waves.reset()
-                game_data.reset()
+            if game_data.get_game_state() == 'title':
+                if event.key == pygame.K_SPACE:
+                    # Start a new game.
+                    entities.all_bullets.empty()
+                    entities.player.reset()
+                    waves.reset()
+                    game_data.reset()
+                elif event.key == pygame.K_LEFT:
+                    game_data.difficulty = np.clip(game_data.difficulty-1, 0, 2)
+                elif event.key == pygame.K_RIGHT:
+                    game_data.difficulty = np.clip(game_data.difficulty+1, 0, 2)
+            elif (
+                (game_data.get_game_state() == 'paused'
+                or game_data.get_game_state() == 'gameplay'
+                or game_data.get_game_state() == 'respawn')
+                and event.key == pygame.K_RETURN
+            ):
+                game_data.toggle_pause()
             elif game_data.get_game_state() == 'hs-name-input':
                 scores.name_input_screen.keypress(event)
 
@@ -70,6 +82,10 @@ while True:
 
     # Clear the screen.
     screen.fill((0, 0, 0))
+
+    if game_data.get_game_state() == 'paused':
+        dt = 0
+        actual_dt = 0
 
     effects.all_effects.update(dt)
 
@@ -132,6 +148,27 @@ while True:
             title_display,
             (400 - (w/2), 200 - (h/2))
         )
+
+        # Difficulty selector:
+        t = game_data.display_font.render(
+            "Difficulty:", True, (255, 255, 255)
+        )
+        w, h = t.get_size()
+
+        screen.blit(t, (220, 500))
+
+        w1 = w
+        c = (255, 255, 255)
+        d_name = "Normal"
+        if game_data.difficulty == 0:
+            c = (0, 255, 0) # green
+            d_name = "Easy"
+        elif game_data.difficulty == 2:
+            c = (255, 0, 0) # red
+            d_name = "Hard"
+
+        d = game_data.display_font.render(d_name, True, c)
+        screen.blit(d, (220 + w1 + 30, 500))
 
         if pygame.time.get_ticks() % 1000 > 500:
             prompt_display = game_data.prompt_font.render(
@@ -200,6 +237,13 @@ while True:
 
         tw, th = wave_time_display.get_size()
         screen.blit(wave_time_display, (550-(tw/2), 0))
+    elif game_data.get_game_state() == 'paused' and (pygame.time.get_ticks() % 1000) > 500:
+        pause_display = game_data.display_font.render(
+            "Game Paused", True, (255, 255, 255)
+        )
+
+        w, h = pause_display.get_size()
+        screen.blit(pause_display, (400 - (w/2), 0))
 
     hs_display = scores.render_high_scores()
     screen.blit(hs_display, (800, 0))
@@ -294,6 +338,8 @@ while True:
                     game_data.active_subscreen = 'hs-name-input'
                 else:
                     scores.save_score()
+
+                game_data.difficulty = 1
 
     if game_data.profiler_enabled:
         profiler.disable()

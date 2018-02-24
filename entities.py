@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 import math
+import random
 import game_data
 
 all_bullets = pygame.sprite.Group()
@@ -120,7 +121,10 @@ class Player(Entity):
 
     def kill(self):
         Entity.kill(self)
-        self.pos = np.zeros(2)
+        self.pos = np.array((
+            random.uniform(10, 790),
+            random.uniform(10, 790),
+        ))
 
     def update(self, dt):
         if game_data.get_game_state() != 'title':
@@ -340,6 +344,8 @@ class HomingBullet(Bullet):
     def update(self, dt):
         if not self.target.dead and not (self.target == player and game_data.get_game_state() == 'respawn'):
             self.accelerate_to(self.target.pos, self.target_acc)
+        else:
+            self.acc = self.vel * 0.1
 
         self.update_pos(dt)
         self.rotate_to_velocity()

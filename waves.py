@@ -774,10 +774,22 @@ force_starting_wave = None
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
     global force_starting_wave, base_wave_time, starting_wave_time, wave_time_decrease
+    global wave_size_increase, starting_wave_size
 
     wave_queue = random.sample(
         possible_wave_types, k=len(possible_wave_types)
     )
+
+    if game_data.difficulty == 0:
+        starting_wave_time = 13
+        wave_time_decrease = .25
+        starting_wave_size = 40
+        wave_size_increase = 5
+    elif game_data.difficulty == 2:
+        starting_wave_time = 9
+        wave_time_decrease = .5
+        starting_wave_size = 80
+        wave_size_increase = 15
 
     base_wave_time = starting_wave_time
     base_wave_size = starting_wave_size
