@@ -589,19 +589,19 @@ class BurstFireWave(Wave):
 
     initial_track_time = 1  # extra time added to first burst
 
-    initialized = False
-    stopped = False
-    sources = []
-    firing_angles = []
-    t = -initial_track_time
-    n = 1
-
     def __init__(self, wave_size):
         Wave.__init__(self, wave_size)
 
         self.n_sources = random.randint(1, 3)
         self.bursts_per_source = random.randint(2, 4)
         self.lock_time = random.uniform(0.4, 0.75)
+
+        self.initialized = False
+        self.stopped = False
+        self.sources = []
+        self.firing_angles = []
+        self.t = -self.initial_track_time
+        self.n = 1
 
         subtype = random.randint(0, 2)
 
@@ -754,10 +754,10 @@ wave_queue = []
 current_wave = None
 wave_completion_time = None
 
-starting_wave_time = 12
+starting_wave_time = 11
 base_wave_time = starting_wave_time
 wave_time_decrease = .5
-min_wave_time = 2
+min_wave_time = 3
 
 starting_wave_size = 60
 base_wave_size = starting_wave_size
