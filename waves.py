@@ -374,7 +374,7 @@ class HomingTracerWave(Wave):
 
 class TrackingSpreadWave(Wave):
     name = "Tracker"
-    fire_period = 1
+    fire_period = 0.75
     bullet_speed = 200
     leader_speed = 150
     spread_angle = 30
@@ -390,7 +390,10 @@ class TrackingSpreadWave(Wave):
     def __init__(self, wave_size):
         Wave.__init__(self, wave_size)
 
-        self.bullets_per_spread = wave_size / 9
+        travel_time = 795 / self.leader_speed
+        firing_periods = math.floor(travel_time / self.fire_period)
+
+        self.bullets_per_spread = int(wave_size / firing_periods)
 
         self.beam_group = pygame.sprite.Group()
 
@@ -607,6 +610,7 @@ class BurstFireWave(Wave):
 
         if subtype == 1:
             # Tight (15 degree) spread, fast bullets and firing, more bursts
+            self.n_sources = random.randint(2, 5)
             self.end_cone_angle = 2.5
             self.bullet_speed = 650
             self.bursts_per_source = random.randint(5, 9)
@@ -765,7 +769,7 @@ wave_size_increase = 5
 
 wave_size_sigma = wave_size_increase
 
-force_starting_wave = HomingTracerWave
+force_starting_wave = TrackingSpreadWave
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
