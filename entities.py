@@ -272,7 +272,12 @@ class MarkerBullet(ConstantPathBullet):
         self.base_image.fill((0, 0, 0, 0))
         pygame.draw.circle(
             self.base_image, color,
-            (10, 10), 10
+            (10, 10), 10, 3
+        )
+
+        pygame.draw.circle(
+            self.base_image, color,
+            (10, 10), 3
         )
 
 
