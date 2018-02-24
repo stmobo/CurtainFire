@@ -173,7 +173,7 @@ class NameInputScreen:
     def keypress(self, ev):
         if ev.key == pygame.K_BACKSPACE:
             self.current_name = self.current_name[:-1]
-        elif ev.key == pygame.K_RETURN:
+        elif ev.key == pygame.K_RETURN and len(self.current_name) > 0:
             save_score(self.current_name)
             game_data.active_subscreen = None
         elif ev.unicode is not None and ev.unicode != '':
