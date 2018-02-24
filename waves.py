@@ -505,7 +505,7 @@ class PatternedWave(Wave):
         angle_offset = random.uniform(-3, 3)
         disp_vec = start - target
 
-        base_angle = np.arctan2(disp_vec[0], disp_vec[1])
+        base_angle = np.arctan2(disp_vec[0], disp_vec[1]) + np.radians(random.uniform(-15, 15))
 
         for i in range(self.bullets_per_point):
             if self.n_bullets_spawned > self.wave_size:
