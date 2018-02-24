@@ -606,12 +606,12 @@ class BurstFireWave(Wave):
         self.t = -self.initial_track_time
         self.n = 1
 
-        subtype = random.randint(0, 2)
+        subtype = 1#random.randint(0, 2)
 
         if subtype == 1:
-            # Tight (15 degree) spread, fast bullets and firing, more bursts
+            # Tight (5 degree) spread, fast bullets and firing, more bursts
             self.n_sources = random.randint(2, 5)
-            self.end_cone_angle = 2.5
+            self.end_cone_angle = 5
             self.bullet_speed = 650
             self.bursts_per_source = random.randint(5, 9)
             self.lock_time = random.uniform(0.3, 0.5)
@@ -769,7 +769,7 @@ wave_size_increase = 5
 
 wave_size_sigma = wave_size_increase
 
-force_starting_wave = TrackingSpreadWave
+force_starting_wave = None
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size
