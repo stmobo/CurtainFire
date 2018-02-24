@@ -32,7 +32,7 @@ low_speed = 0.35
 
 _td_lo_to_hi_speed = (low_speed - 1) / .5
 
-time_dilation_max = 5
+time_dilation_max = 2.5
 time_dilation_usage = time_dilation_max
 time_dilation_must_recharge = False
 
@@ -81,12 +81,12 @@ def change_score(delta):
 
 def update_time_dilation(actual_dt):
     global time_dilation, low_speed, _td_lo_to_hi_speed, time_dilation_usage
-    global time_dilation_must_recharge
+    global time_dilation_must_recharge, respawn_timer
 
     pressed = pygame.key.get_pressed()
 
     if (
-        (get_game_state() == 'gameplay' or get_game_state() == 'respawn')
+        (get_game_state() == 'gameplay' or (get_game_state() == 'respawn' and respawn_timer < 3))
         and pressed[pygame.K_SPACE]
         and not time_dilation_must_recharge and time_dilation_usage >= 0
     ):

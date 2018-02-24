@@ -295,7 +295,7 @@ class GridLockWave(Wave):
 
 class HomingTracerWave(Wave):
     name = "Bombing Run"
-    fire_period = 0.75
+    fire_period = 0.5
     bullet_speed = 200
     leader_speed = 300
     bullets_per_spread = 20
@@ -610,12 +610,12 @@ class BurstFireWave(Wave):
             self.end_cone_angle = 2.5
             self.bullet_speed = 650
             self.bursts_per_source = random.randint(5, 9)
-            self.lock_time = random.uniform(0.2, 0.5)
+            self.lock_time = random.uniform(0.3, 0.5)
             self.lock_pause_time = 0.05
         elif subtype == 2:
             # Wide (90 degree) spread, fast convergence, slow bullets
             self.end_cone_angle = 45
-            self.lock_time = random.uniform(0.2, 0.5)
+            self.lock_time = random.uniform(0.3, 0.5)
             self.bullet_speed = 150
 
         cycles_per_burst = int(self.lock_pause_time / 0.025)
@@ -697,6 +697,7 @@ class BurstFireWave(Wave):
             m.kill()
             r1.kill()
             r2.kill()
+        self.sources = []
 
     def update(self, dt):
         Wave.update(self, dt)
@@ -764,7 +765,7 @@ wave_size_increase = 5
 
 wave_size_sigma = wave_size_increase
 
-force_starting_wave = BurstFireWave
+force_starting_wave = HomingTracerWave
 
 def reset():
     global current_wave, wave_completion_time, wave_queue, base_wave_size

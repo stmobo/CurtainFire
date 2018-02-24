@@ -78,7 +78,7 @@ while True:
 
     # Normal game flow-- update bullets and check for invalid positions.
     game_data.update_time_dilation(actual_dt)
-    entities.player.update(actual_dt)
+    entities.player.update(dt)
     entities.all_bullets.update(dt)
 
     for sprite in entities.all_bullets.sprites():
