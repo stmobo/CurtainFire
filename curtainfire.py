@@ -204,7 +204,11 @@ while True:
     hs_display = scores.render_high_scores()
     screen.blit(hs_display, (800, 0))
 
-    if scores.is_high_score() and game_data.get_game_state() == 'gameplay' and len(scores.saved_scores) != 0:
+    if (
+        scores.is_high_score()
+        and (game_data.get_game_state() == 'gameplay' or game_data.get_game_state() == 'respawn')
+        and len(scores.saved_scores) != 0
+    ):
         hs_display = effects.render_striped_text(
             "High Score", game_data.display_font,
             (255, 255, 255, 255), (255, 0, 0, 255), 2, 150
@@ -288,6 +292,8 @@ while True:
                 if scores.is_high_score():
                     scores.name_input_screen.reset()
                     game_data.active_subscreen = 'hs-name-input'
+                else:
+                    scores.save_score()
 
     if game_data.profiler_enabled:
         profiler.disable()

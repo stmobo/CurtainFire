@@ -31,12 +31,13 @@ def read_scores(f='./scores.csv'):
                 } for row in reader],
                 key=lambda v: v['score'],
                 reverse=True
-            )[:score_cutoff]
+            )
     except FileNotFoundError as e:
         print("Could not find scores file!")
         return []
 
 saved_scores = read_scores()
+print("Read {} scores.".format(len(saved_scores)))
 
 def sort_scores():
     global saved_scores, score_cutoff
@@ -44,7 +45,7 @@ def sort_scores():
         saved_scores,
         key=lambda v: v['score'],
         reverse=True
-    )[:score_cutoff]
+    )
 
 def write_scores(score_list, f='./scores.csv'):
     with open(f, 'w', newline='') as csvfile:
@@ -62,12 +63,19 @@ def current_score_object(name):
         'waves': game_data.current_wave_number
     }
 
+def save_score(name='Unknown'):
+    global saved_score
+
+    saved_scores.append(current_score_object(name))
+    sort_scores()
+    write_scores(saved_scores)
+
 def is_high_score():
     global saved_scores
     if len(saved_scores) == 0:
         return True
 
-    threshold = min([s['score'] for s in saved_scores])
+    threshold = min([s['score'] for s in saved_scores[:score_cutoff]])
 
     return game_data.score > threshold
 
@@ -118,6 +126,9 @@ def render_high_scores():
         current_h = start_h + game_data.high_score_font.get_height() + margin
 
         for i, s in enumerate(saved_scores):
+            if i >= score_cutoff:
+                break
+
             listing_1 = game_data.high_score_font.render(
                 "{}. {}".format(
                     i+1, s['name'], s['score'], s['time'], s['waves']
@@ -151,13 +162,10 @@ class NameInputScreen:
         self.current_name = ""
 
     def keypress(self, ev):
-        global saved_scores
         if ev.key == pygame.K_BACKSPACE:
             self.current_name = self.current_name[:-1]
         elif ev.key == pygame.K_RETURN:
-            saved_scores.append(current_score_object(self.current_name))
-            sort_scores()
-            write_scores(saved_scores)
+            save_score(self.current_name)
             game_data.active_subscreen = None
         elif ev.unicode is not None and ev.unicode != '':
             self.current_name += ev.unicode
