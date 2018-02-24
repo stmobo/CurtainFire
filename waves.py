@@ -317,8 +317,8 @@ class HomingTracerWave(Wave):
                 )
 
                 new_sprite.vel = np.array((
-                    random.uniform(-50, 50),
-                    random.uniform(-50, 50)
+                    random.gauss(0, 5*np.sqrt(self.wave_size)),
+                    random.gauss(0, 5*np.sqrt(self.wave_size))
                 ))
 
                 self.bullets.add(new_sprite)
