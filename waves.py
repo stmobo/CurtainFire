@@ -606,7 +606,7 @@ class BurstFireWave(Wave):
         self.t = -self.initial_track_time
         self.n = 1
 
-        subtype = 1#random.randint(0, 2)
+        subtype = random.randint(0, 2)
 
         if subtype == 1:
             # Tight (5 degree) spread, fast bullets and firing, more bursts
