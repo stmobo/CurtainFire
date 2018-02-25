@@ -91,7 +91,7 @@ class Player(Entity):
         down = pressed[pygame.K_DOWN] or pressed[pygame.K_s]
 
         if pressed[pygame.K_LSHIFT] or pressed[pygame.K_RSHIFT]:
-            self.movement_magnitude = 150
+            self.movement_magnitude = 120
         else:
             self.movement_magnitude = 300
 
