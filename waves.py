@@ -786,9 +786,9 @@ def reset():
         starting_wave_size = 40
         wave_size_increase = 5
     elif game_data.difficulty == 1:
-        starting_wave_size = 60
+        starting_wave_time = 11
         wave_time_decrease = .5
-        base_wave_size = starting_wave_size
+        starting_wave_size = 60
         wave_size_increase = 5
     elif game_data.difficulty == 2:
         starting_wave_time = 9
